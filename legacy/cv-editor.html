@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CV Editor</title>
+
+<!-- ===========================================================
+     CV EDITOR  ·  single file, works offline, nothing to install
+     Open in Chrome. Click any text on the page to edit it.
+     Everything saves in the browser automatically.
+     =========================================================== -->
+
+<style id="cv-css">
+/* ============================================================
+   THE CV ITSELF
+   Every colour, font and size below is driven by a variable,
+   so the editor panel can change them live.
+   ============================================================ */
+#cv{
+  --brand-dark:   #45608a;
+  --brand-heading:#5d7da8;
+  --brand-sub:    #7191b7;
+  --sidebar-bg:   #f4f5f7;
+  --paper:        #ffffff;
+  --text:         #2e2e2e;
+  --text-strong:  #1f1f1f;
+  --icon:         #3d4a5c;
+  --rule:         #d6dae0;
+  --dot-on:       #3c6194;
+  --dot-off:      #d7dade;
+  --photo-ring:   #ffffff;
+
+  --font-body: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-head: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --fs-body: 13px;
+  --fs-heading: 23px;
+  --fs-name: 19.5px;
+  --lh-body: 1.4;
+  --gap-section: 20px;
+  --sidebar-w: 33.4%;
+  --photo-size: 176px;
+  --photo-radius: 50%;
+  --photo-zoom: 1;
+  --photo-x: 50%;
+  --photo-y: 50%;
+}
+
+@page{ size:A4; margin:0; }
+
+#cv{
+  position:relative;
+  width:210mm;
+  height:297mm;
+  background:var(--paper);
+  color:var(--text);
+  font-family:var(--font-body);
+  display:flex;
+  overflow:visible;
+  -webkit-print-color-adjust:exact;
+  print-color-adjust:exact;
+}
+:where(#cv, #cv *){ box-sizing:border-box; margin:0; padding:0; }
+
+/* --- sidebar shapes are drawn as SVG so they always print,
+       even if "Background graphics" is left unticked --- */
+.side-art{
+  position:absolute;
+  inset:0;
+  width:var(--sidebar-w);
+  height:100%;
+  z-index:0;
+  pointer-events:none;
+}
+#cv[data-side="right"] .side-art{ left:auto; right:0; }
+.art-bg{ fill:var(--sidebar-bg); }
+.art-dark{ fill:var(--brand-dark); }
+
+.sidebar{
+  position:relative;
+  z-index:1;
+  width:var(--sidebar-w);
+  padding:0 24px 0 26px;
+  order:0;
+}
+#cv[data-side="right"] .sidebar{ order:2; }
+#cv[data-side="right"] .main{ order:1; }
+
+.name{
+  padding-top:38px;
+  text-align:center;
+  color:#ffffff;
+  font-family:var(--font-head);
+  font-size:var(--fs-name);
+  font-weight:700;
+  letter-spacing:.2px;
+  line-height:1.25;
+}
+
+.photo-wrap{
+  position:relative;
+  width:var(--photo-size);
+  height:var(--photo-size);
+  margin:19px auto 0;
+  border:7px solid var(--photo-ring);
+  border-radius:var(--photo-radius);
+  overflow:hidden;
+  background:var(--sidebar-bg);
+}
+#cv[data-photo="off"] .photo-wrap{ display:none; }
+.photo-wrap img{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+  object-position:var(--photo-x) var(--photo-y);
+  transform:scale(var(--photo-zoom));
+}
+
+.side-heading,
+.heading{
+  font-family:var(--font-head);
+  color:var(--brand-heading);
+  font-size:var(--fs-heading);
+  font-weight:400;
+  line-height:1.2;
+  border-bottom:1px solid var(--rule);
+  padding-bottom:7px;
+}
+.side-heading{ margin-top:20px; }
+.photo-wrap + .side-heading{ margin-top:8px; }
+.name + .side-heading{ margin-top:22px; }
+.heading{ margin-bottom:13px; }
+
+.details{ margin-top:13px; }
+.detail{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  margin-bottom:15px;
+  font-size:var(--fs-body);
+  line-height:1.3;
+}
+.detail .ic{ flex:0 0 17px; height:17px; }
+.detail .ic svg{ width:17px; height:17px; fill:var(--icon); display:block; }
+
+.skills{ margin-top:14px; }
+.skill{
+  position:relative;
+  font-size:var(--fs-body);
+  line-height:1.35;
+  margin-bottom:13px;
+}
+
+.languages{ margin-top:14px; }
+.language{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  font-size:var(--fs-body);
+  margin-bottom:15px;
+}
+.dots{ display:flex; gap:5px; flex:0 0 auto; }
+/* the dots are drawn with borders, which always print */
+.dot{
+  width:0; height:0;
+  border:6px solid var(--dot-off);
+  border-radius:50%;
+  background:none;
+  padding:0;
+  cursor:pointer;
+}
+.dot.on{ border-color:var(--dot-on); }
+
+.main{
+  position:relative;
+  z-index:1;
+  flex:1;
+  padding:34px 30px 0 28px;
+  min-width:0;
+}
+
+.section{ position:relative; margin-bottom:var(--gap-section); }
+.section:last-of-type{ margin-bottom:0; }
+
+.profile-text{
+  font-size:var(--fs-body);
+  line-height:1.48;
+}
+.entry{ position:relative; margin-bottom:13px; }
+.entry:last-child{ margin-bottom:0; }
+.entry-title{
+  font-size:var(--fs-body);
+  font-weight:700;
+  color:var(--text-strong);
+  line-height:1.35;
+}
+.entry-sub{
+  font-size:var(--fs-body);
+  color:var(--brand-sub);
+  line-height:1.35;
+  margin-bottom:2px;
+}
+
+ul.points{ list-style:disc; padding-left:22px; }
+ul.points li{
+  position:relative;
+  font-size:var(--fs-body);
+  line-height:var(--lh-body);
+  margin:.5px 0;
+  padding-left:3px;
+}
+#cv b, #cv strong{ font-weight:700; color:var(--text-strong); }
+</style>
+
+<style id="ui-css">
+/* ============================================================
+   THE EDITOR AROUND THE CV (never printed)
+   ============================================================ */
+:root{
+  --ui-bg:#11151c;
+  --ui-panel:#181e27;
+  --ui-line:#28303d;
+  --ui-text:#e7ecf3;
+  --ui-dim:#93a1b5;
+  --ui-accent:#5b8def;
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; height:100%; }
+body{
+  background:#e7eaef;
+  font-family:"Helvetica Neue", Helvetica, Arial, sans-serif;
+  color:#1d2430;
+}
+
+.app{ display:flex; min-height:100vh; }
+
+/* ---------- left control panel ---------- */
+.panel{
+  width:318px;
+  flex:0 0 318px;
+  background:var(--ui-bg);
+  color:var(--ui-text);
+  height:100vh;
+  position:sticky;
+  top:0;
+  overflow-y:auto;
+  border-right:1px solid #000;
+}
+.panel::-webkit-scrollbar{ width:10px; }
+.panel::-webkit-scrollbar-thumb{ background:#2b3542; border-radius:8px; }
+
+.brand{
+  padding:18px 18px 14px;
+  border-bottom:1px solid var(--ui-line);
+  position:sticky; top:0; background:var(--ui-bg); z-index:5;
+}
+.brand h1{ font-size:15px; margin:0 0 3px; letter-spacing:.3px; }
+.brand p{ margin:0; font-size:11.5px; color:var(--ui-dim); line-height:1.4; }
+
+.actions{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+.btn{
+  appearance:none; border:1px solid var(--ui-line); background:var(--ui-panel);
+  color:var(--ui-text); font-size:12px; font-weight:600; padding:9px 10px;
+  border-radius:8px; cursor:pointer; text-align:center; line-height:1.2;
+  font-family:inherit;
+}
+.btn:hover{ border-color:#3c4757; background:#1f2733; }
+.btn.primary{ background:var(--ui-accent); border-color:var(--ui-accent); color:#fff; }
+.btn.primary:hover{ background:#4b7ce0; }
+.btn.wide{ grid-column:1 / -1; }
+.btn.danger:hover{ border-color:#b4434b; color:#ff9aa1; }
+
+.group{ border-bottom:1px solid var(--ui-line); }
+.group > summary{
+  list-style:none; cursor:pointer; padding:13px 18px;
+  font-size:12px; font-weight:700; letter-spacing:.6px; text-transform:uppercase;
+  color:#c7d2e0; display:flex; align-items:center; justify-content:space-between;
+}
+.group > summary::-webkit-details-marker{ display:none; }
+.group > summary::after{ content:"+"; color:var(--ui-dim); font-size:15px; }
+.group[open] > summary::after{ content:"\2212"; }
+.group .body{ padding:2px 18px 18px; }
+
+.row{ margin-bottom:13px; }
+.row label{ display:block; font-size:11.5px; color:var(--ui-dim); margin-bottom:6px; }
+.row .val{ float:right; color:#c7d2e0; }
+input[type=range]{ width:100%; accent-color:var(--ui-accent); }
+select, input[type=text]{
+  width:100%; background:var(--ui-panel); color:var(--ui-text);
+  border:1px solid var(--ui-line); border-radius:7px; padding:8px 9px;
+  font-size:12.5px; font-family:inherit;
+}
+input[type=color]{
+  width:100%; height:32px; padding:0; border:1px solid var(--ui-line);
+  border-radius:7px; background:var(--ui-panel); cursor:pointer;
+}
+
+.schemes{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.scheme{
+  border:2px solid transparent; border-radius:9px; padding:0; cursor:pointer;
+  background:#0d1117; overflow:hidden; height:44px; position:relative;
+}
+.scheme.active{ border-color:#fff; }
+.scheme i{ position:absolute; inset:0; display:block; }
+.scheme i:nth-child(1){ right:55%; }
+.scheme i:nth-child(2){ left:45%; right:22%; }
+.scheme i:nth-child(3){ left:78%; }
+.scheme span{
+  position:absolute; left:0; right:0; bottom:0; font-size:8.5px; text-align:center;
+  background:rgba(0,0,0,.55); color:#fff; padding:2px 0; letter-spacing:.2px;
+}
+
+.colors{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+.pillrow{ display:flex; gap:6px; flex-wrap:wrap; }
+.pill{
+  border:1px solid var(--ui-line); background:var(--ui-panel); color:var(--ui-text);
+  border-radius:20px; padding:6px 12px; font-size:11.5px; cursor:pointer; font-family:inherit;
+}
+.pill.active{ background:var(--ui-accent); border-color:var(--ui-accent); color:#fff; }
+
+.hint{ font-size:11px; color:var(--ui-dim); line-height:1.5; margin-top:10px; }
+.tplcard{
+  border:1px solid var(--ui-line); border-radius:9px; padding:11px 12px; margin-bottom:8px;
+  display:flex; gap:10px; align-items:center; cursor:pointer;
+}
+.tplcard.active{ border-color:var(--ui-accent); background:#141c28; }
+.tplcard .sw{ width:26px; height:34px; border-radius:4px; flex:0 0 26px; background:#fff; position:relative; overflow:hidden; border:1px solid #2b3542; }
+.tplcard .sw b{ position:absolute; left:0; top:0; bottom:0; width:38%; background:var(--brand-dark,#45608a); }
+.tplcard .sw.right b{ left:auto; right:0; }
+.tplcard .t{ font-size:12.5px; font-weight:600; }
+.tplcard .d{ font-size:11px; color:var(--ui-dim); margin-top:2px; }
+.tplcard.soon{ opacity:.55; cursor:default; }
+
+/* ---------- canvas ---------- */
+.canvas{
+  flex:1;
+  padding:28px 28px 60px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  overflow-x:auto;
+}
+.canvas-top{
+  width:210mm; max-width:100%; display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:12px; gap:12px; flex-wrap:wrap;
+}
+.status{ font-size:12px; color:#5c6879; }
+.warn{
+  display:none; font-size:12px; font-weight:600; color:#8a4b00; background:#ffe9c7;
+  border:1px solid #f0c37a; padding:6px 11px; border-radius:7px;
+}
+.warn.show{ display:block; }
+.paper-shadow{ box-shadow:0 10px 40px rgba(20,30,50,.22); }
+
+/* editable affordances */
+[contenteditable]{ outline:none; }
+[contenteditable]:hover{ box-shadow:0 0 0 1px #c9d6ea; border-radius:3px; }
+[contenteditable]:focus{ box-shadow:0 0 0 2px #93b4ef; border-radius:3px; background:#f3f7ff; }
+[contenteditable]:empty::before{ content:attr(data-ph); color:#a8b0bd; }
+
+/* floating controls that never affect layout */
+.ui{ position:absolute; z-index:20; }
+.rowdel{
+  top:50%; right:-11px; transform:translateY(-50%);
+  width:19px; height:19px; border-radius:50%;
+  background:#fff; color:#c0392b; border:1px solid #dfe4ec;
+  box-shadow:0 1px 4px rgba(20,30,50,.2);
+  font-size:13px; line-height:1; cursor:pointer; opacity:0; transition:opacity .12s;
+  display:flex; align-items:center; justify-content:center; padding:0; font-family:inherit;
+}
+.detail:hover .rowdel, .skill:hover .rowdel, .language:hover .rowdel,
+ul.points li:hover .rowdel{ opacity:1; }
+/* in the sidebar the remove button sits on the left, clear of the language dots */
+.detail .rowdel, .skill .rowdel, .language .rowdel{ left:-14px; right:auto; }
+
+/* each list is its own anchor so the Add button sits under that list */
+.hoverable{ position:relative; }
+.addbtn{
+  left:0; bottom:-13px; opacity:0; transition:opacity .12s;
+  background:#fff; border:1px dashed #b9c4d6; color:#43536b;
+  border-radius:14px; font-size:10.5px; padding:3px 10px; cursor:pointer;
+  box-shadow:0 1px 4px rgba(20,30,50,.12); font-family:inherit; white-space:nowrap;
+}
+.hoverable:hover .addbtn{ opacity:1; }
+/* the Add entry button sits on the right so it never covers Add bullet */
+.addbtn[data-add="entry"]{ left:auto; right:0; bottom:-15px; }
+
+.toolset{
+  top:-2px; right:-4px; display:flex; gap:4px; opacity:0; transition:opacity .12s;
+}
+.section:hover > .toolset, .entry:hover > .toolset{ opacity:1; }
+.toolset button{
+  width:20px; height:20px; border-radius:6px; background:#fff; border:1px solid #dfe4ec;
+  color:#43536b; font-size:11px; line-height:1; cursor:pointer; padding:0;
+  box-shadow:0 1px 4px rgba(20,30,50,.15); font-family:inherit;
+}
+.toolset button:hover{ border-color:#93b4ef; color:#1c4fb5; }
+
+.photo-edit{
+  position:absolute; inset:0; z-index:20; display:flex; align-items:flex-end;
+  justify-content:center; opacity:0; transition:opacity .12s; cursor:grab;
+}
+.photo-wrap:hover .photo-edit{ opacity:1; }
+.photo-edit span{
+  background:rgba(12,18,28,.78); color:#fff; font-size:10px; padding:4px 9px;
+  border-radius:12px; margin-bottom:10px; pointer-events:none;
+}
+
+.iconpop{
+  position:absolute; z-index:60; background:#fff; border:1px solid #d7dde8;
+  border-radius:10px; padding:8px; display:none; grid-template-columns:repeat(5,28px);
+  gap:5px; box-shadow:0 10px 30px rgba(20,30,50,.24);
+}
+.iconpop.show{ display:grid; }
+.iconpop button{
+  width:28px; height:28px; border:1px solid transparent; background:#f4f6fa;
+  border-radius:7px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;
+}
+.iconpop button:hover{ border-color:#93b4ef; background:#eaf1ff; }
+.iconpop svg{ width:15px; height:15px; fill:#3d4a5c; }
+.detail .ic{ cursor:pointer; }
+
+/* modal */
+.modal{
+  position:fixed; inset:0; background:rgba(10,15,24,.55); display:none;
+  align-items:center; justify-content:center; z-index:100; padding:20px;
+}
+.modal.show{ display:flex; }
+.modal .box{
+  background:#fff; border-radius:14px; padding:24px; max-width:430px; width:100%;
+  box-shadow:0 24px 70px rgba(10,20,40,.35);
+}
+.modal h2{ margin:0 0 10px; font-size:17px; }
+.modal ol{ margin:0 0 18px 18px; padding:0; font-size:13px; line-height:1.65; color:#3c4757; }
+.modal .foot{ display:flex; gap:10px; justify-content:flex-end; }
+.modal .btn{ border-color:#d7dde8; background:#f4f6fa; color:#1d2430; }
+.modal .btn.primary{ background:var(--ui-accent); border-color:var(--ui-accent); color:#fff; }
+
+/* ---------- printing ---------- */
+@media print{
+  html, body{ height:auto !important; background:#fff; }
+  .canvas{ display:block !important; }
+  .panel, .canvas-top, .modal, .ui, .photo-edit, .iconpop{ display:none !important; }
+  /* the wrappers step out of the way so the page is the only printed box */
+  .app, .canvas{ display:contents !important; }
+  #cv{ box-shadow:none !important; overflow:hidden; margin:0; }
+  [contenteditable]:hover, [contenteditable]:focus{ box-shadow:none !important; background:none !important; }
+  [contenteditable]:empty::before{ content:"" !important; }
+}
+
+@media (max-width:1100px){
+  .app{ flex-direction:column; }
+  .panel{ width:100%; flex:none; height:auto; position:static; border-right:0; border-bottom:1px solid #000; }
+  .canvas{ padding:16px 10px 40px; }
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- ============ CONTROL PANEL ============ -->
+  <aside class="panel">
+    <div class="brand">
+      <h1>CV Editor</h1>
+      <p>Click any text on the page to change it. Everything saves as you type.</p>
+      <div class="actions">
+        <button class="btn primary wide" id="btnPdf">Download PDF</button>
+        <button class="btn" id="btnPhoto">Change photo</button>
+        <button class="btn" id="btnFit">Fit to page</button>
+        <button class="btn" id="btnSaveFile">Save a copy</button>
+        <button class="btn" id="btnOpenFile">Open a copy</button>
+        <button class="btn" id="btnExportHtml">Export clean HTML</button>
+        <button class="btn danger" id="btnReset">Reset</button>
+      </div>
+    </div>
+
+    <details class="group" open>
+      <summary>Colour scheme</summary>
+      <div class="body">
+        <div class="schemes" id="schemes"></div>
+        <div class="row" style="margin-top:14px"></div>
+        <div class="colors">
+          <div class="row"><label>Sidebar panel</label><input type="color" data-var="--brand-dark"></div>
+          <div class="row"><label>Headings</label><input type="color" data-var="--brand-heading"></div>
+          <div class="row"><label>Company lines</label><input type="color" data-var="--brand-sub"></div>
+          <div class="row"><label>Sidebar background</label><input type="color" data-var="--sidebar-bg"></div>
+          <div class="row"><label>Body text</label><input type="color" data-var="--text"></div>
+          <div class="row"><label>Icons</label><input type="color" data-var="--icon"></div>
+          <div class="row"><label>Level dots</label><input type="color" data-var="--dot-on"></div>
+          <div class="row"><label>Empty dots</label><input type="color" data-var="--dot-off"></div>
+        </div>
+        <p class="hint">The heading lines and the language dots follow these colours too, so one change reskins the whole CV.</p>
+      </div>
+    </details>
+
+    <details class="group">
+      <summary>Typography</summary>
+      <div class="body">
+        <div class="row">
+          <label>Body font</label>
+          <select data-var="--font-body" class="fontsel"></select>
+        </div>
+        <div class="row">
+          <label>Heading font</label>
+          <select data-var="--font-head" class="fontsel"></select>
+        </div>
+        <div class="row">
+          <label>Body size <span class="val" data-for="--fs-body"></span></label>
+          <input type="range" data-var="--fs-body" min="9.5" max="15" step="0.1" data-unit="px">
+        </div>
+        <div class="row">
+          <label>Heading size <span class="val" data-for="--fs-heading"></span></label>
+          <input type="range" data-var="--fs-heading" min="17" max="30" step="0.5" data-unit="px">
+        </div>
+        <div class="row">
+          <label>Name size <span class="val" data-for="--fs-name"></span></label>
+          <input type="range" data-var="--fs-name" min="14" max="30" step="0.5" data-unit="px">
+        </div>
+        <div class="row">
+          <label>Line spacing <span class="val" data-for="--lh-body"></span></label>
+          <input type="range" data-var="--lh-body" min="1.2" max="1.8" step="0.02">
+        </div>
+      </div>
+    </details>
+
+    <details class="group">
+      <summary>Layout</summary>
+      <div class="body">
+        <div class="row">
+          <label>Sidebar position</label>
+          <div class="pillrow" id="sidePos">
+            <button class="pill active" data-side="left">Left</button>
+            <button class="pill" data-side="right">Right</button>
+          </div>
+        </div>
+        <div class="row">
+          <label>Sidebar width <span class="val" data-for="--sidebar-w"></span></label>
+          <input type="range" data-var="--sidebar-w" min="26" max="42" step="0.2" data-unit="%">
+        </div>
+        <div class="row">
+          <label>Space between sections <span class="val" data-for="--gap-section"></span></label>
+          <input type="range" data-var="--gap-section" min="8" max="34" step="1" data-unit="px">
+        </div>
+        <div class="row">
+          <label>Photo size <span class="val" data-for="--photo-size"></span></label>
+          <input type="range" data-var="--photo-size" min="110" max="220" step="2" data-unit="px">
+        </div>
+        <div class="row">
+          <label>Photo zoom <span class="val" data-for="--photo-zoom"></span></label>
+          <input type="range" data-var="--photo-zoom" min="1" max="2.2" step="0.01">
+        </div>
+        <div class="row">
+          <label>Photo shape</label>
+          <div class="pillrow" id="photoShape">
+            <button class="pill active" data-radius="50%">Circle</button>
+            <button class="pill" data-radius="14px">Rounded</button>
+            <button class="pill" data-radius="0px">Square</button>
+            <button class="pill" data-photo="off">No photo</button>
+          </div>
+        </div>
+        <p class="hint">Drag the photo itself to reposition the face inside the frame.</p>
+      </div>
+    </details>
+
+    <details class="group">
+      <summary>Template</summary>
+      <div class="body">
+        <div class="tplcard active"><span class="sw"><b></b></span><span><span class="t">Classic Sidebar</span><span class="d">The current design, sidebar left or right</span></span></div>
+        <div class="tplcard soon"><span class="sw right"><b></b></span><span><span class="t">Executive Header</span><span class="d">Premium template, coming next</span></span></div>
+        <div class="tplcard soon"><span class="sw"><b></b></span><span><span class="t">Two Column Modern</span><span class="d">Premium template, coming next</span></span></div>
+        <p class="hint">More premium templates are on the way. Anything you type here carries over to them.</p>
+      </div>
+    </details>
+
+    <details class="group">
+      <summary>How to use</summary>
+      <div class="body">
+        <p class="hint" style="margin-top:0">
+          Click any line to edit it. Select text and press Cmd B or Ctrl B to make it bold.<br><br>
+          Hover a bullet, a skill or a detail row to get a small red cross that removes it, and a dashed
+          Add button under each list.<br><br>
+          Hover a section or a job to get arrows for moving it up or down and a cross to delete it.<br><br>
+          Click a language dot to set the level. Click an icon in Personal details to swap it.<br><br>
+          Fit to page shrinks the text just enough to keep everything on one sheet.
+        </p>
+      </div>
+    </details>
+  </aside>
+
+  <!-- ============ PAPER ============ -->
+  <div class="canvas">
+    <div class="canvas-top">
+      <span class="status" id="status">Saved</span>
+      <span class="warn" id="warn">Content runs past one page. Press Fit to page.</span>
+    </div>
+
+    <div id="cv" class="paper-shadow" data-side="left" data-photo="on">
+
+      <!-- sidebar artwork, drawn so it always prints -->
+      <svg class="side-art" viewBox="0 0 260 1123" preserveAspectRatio="none" aria-hidden="true">
+        <rect class="art-bg" x="0" y="0" width="260" height="1123"></rect>
+        <path class="art-dark" d="M0,0 H260 V131 Q130,168 0,131 Z"></path>
+        <path class="art-dark" d="M0,1123 V1075 Q130,1027 260,1075 V1123 Z"></path>
+      </svg>
+
+      <!-- ---------------- SIDEBAR ---------------- -->
+      <aside class="sidebar">
+        <h1 class="name" contenteditable data-ph="Your name">Jordan Blake</h1>
+
+        <div class="photo-wrap">
+          <img id="photo" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAL4AvgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9FaKMijIr0DkCijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIoyKACijIooAbRRRTuAUUUUXAKKKKLgFFFFFwCiiii4BRRRRcAoooouAUUUUXAKKKKLgFFFFFwCiiii4BRRRRcAoooouAUUUUXAKKKKLgFFFFFwCiiii4BRRRRcAoooouAUUUUXAKKKKLgFFFFFwCiiii4BRRRRcAoooouAUUUUXAKKKKLgFFFFFwCiiii4BRRRRcAoooouAUUUUXAKKKKLgFFFFFwCiiii4BRRRRcAoooouAUUUUXAKKKKLgFFFFFwCiiii4BRRRRcAoooouAUUUUXAKKKKLgFFFFFwCiiii4BRRRRcAopuTRk0WFqOopuTRk0WDUdRTcmjJosGo6im5NGTRYNR1FNyaMmiwajqKbk0ZNFg1HUU3JoyaLBqOopuTRk0WDUdRTcmjJosGo6im5NGTRYNR1FNyaMmiwajqKbk0ZNFg1HUU3JoyaLBqOopuTRk0WDUdRTcmjJosGo6im5NGTRYNR1FNyaMmiwajqKbk0ZNFg1HUU3JoyaLBqOopuTRk0WDUdRTcmjJosGo6im5NGTRYNR1FNyaMmiwajqKbk0ZNFg1HUU3JoyaLBqOopuTRk0WDUdRTcmjJosGo6im5NGTRYNR1FNyaMmiwajqKbk0ZNFg1HUU3JoyaLBqOopuTRk0WDUdRTcmjJosGo6im5NGTRYNR1FNyaMmiwajqKbk0ZNFg1HUU3JoyaLBqOopuTRk0WDUdRTcmjJosGo6im5NGTRYNR1FNyaMmiwajqKbk0ZNFg1HUU3JoyaLBqOopuTRk0WDUdRTcmjJosGo6im5NGTRYNR1FNyaMmiwajqKbk0UWDUSiiincLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhRRRRcLhketGR60yiiwWH5HrRketMoosFh+R60ZHrTKKLBYfketGR60yiiwWH5HrRketMoosFh+R60ZHrTKKLBYfketGR60yiiwWH5HrRketMoosFh+R60ZHrTKKLBYfketGR60yiiwWH5HrRketMoosFh+R60ZHrTKKLBYfketGR60yiiwWH5HrRketMoosFh+R60ZHrTKKLBYfketGR60yiiwWH5HrRketMoosFh+R60ZHrTKKLBYfketGR60yiiwWH5HrRketMoosFh+R60ZHrTKKLBYfketGR60yiiwWH5HrRketMoosFh+R60ZHrTKKLBYfketGR60yiiwWH5HrRketMoosFh+R60ZHrTKKLBYfketGR60yiiwWH5HrRketMoosFh+R60ZHrTKKLBYfketGR60yiiwWH5HrRketMoosFh+R60ZHrTKKLBYfketGR60yiiwWH5HrRketMoosFh+R60ZHrTKKLBYfketGR60yiiwWH5HrRketMoosFh+R60ZHrTKKLBYfketGR60yiiwWH5HrRketMoosFh+R60ZHrTKKLBYfketGR60yiiwWH5HrRketMoosFh+R60ZHrTKKLBYfketGR60yiiwWH5HrRketMoosFh+R60UyiiwWCiiimIKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigBNxo3GkooC4u40bjSUUBcXcaNxpKKAuLuNG40lFAXF3GjcaSigLi7jRuNJRQFxdxo3GkooC4u40bjSUUBcXcaNxpKKAuLuNG40lFAXF3GjcaSigLi7jRuNJRQFxdxo3GkooC4u40bjSUUBcXcaNxpKKAuLuNG40lFAXF3GjcaSigLi7jRuNJRQFxdxo3GkooC4u40bjSUUBcXcaNxpKKAuLuNG40lFAXF3GjcaSigLi7jRuNJRQFxdxo3GkooC4u40bjSUUBcXcaNxpKKAuLuNG40lFAXF3GjcaSigLi7jRuNJRQFxdxo3GkooC4u40bjSUUBcXcaNxpKKAuLu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ooooAKKKKACiiigAooooA8n+PUpEWiW/YvPJ19kHT8a8hr1X49f8fmi/9cZ//Qlryquyl8COefxBRRRWhAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAevfAWUmLW7fsHgk6+zjp+FesV498Bf+PzWv8ArjB/6E1ew1x1fjZ0Q+EKKKKzLCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAGUUUUwCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAPJfjzFzok+09LiPPb+A4ryavafjnamTQNOvAP9ReFCfQOh/qteLV10vhOep8QUUUVoQFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFAHrPwGi51ufaelvHnt/GcV61XmvwMtTHoGo3hH+vvAgPqEQf1avSq46ms2dMFaIUUUVBQUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAZHrRketMopAPyPWjI9aZRQA/I9aMj1plFAD8j1oyPWmUUAPyPWjI9aZRQA/I9aMj1plFAD8j1oyPWmUUAPyPWjI9aZRQA/I9aMj1plFAD8j1oyPWmUUAPyPWjI9aZRQA/I9aMj1plFAD8j1oyPWmUUAPyPWjI9aZRQA/I9aMj1plFAD8j1oyPWmUUAcr8VbD7f4G1DaMta+XdD/gDDP6E18819U39nHqNjcafMPkuonhb6MpH9a+Wri3ltLiW0nGJIHaJx/tKcH9RXTQejRjVWtyOiiitzIKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKkt7eW7uIrSAZkndYkH+0xwP1NAH0F8KrD7B4G0/cMNdeZdH/gbHH6AV1uR61VsLOPTrG30+EfJaxJCv0VQP6VPXDJ3dzqSsrD8j1oyPWmUVIx+R60ZHrTKKAH5HrRketMooAfketGR60yigB+R60ZHrTKKAH5HrRketMooAfketGR60yigB+R60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pu72o3e1ADqKbu9qN3tQA6im7vajd7UAOopu72o3e1ADqKbu9qN3tQA6im7vajd7UAOopu72o3e1ADqKbu9qKAEooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAK4Txd8KdJ11nvtHZNOvm+ZgF/cyn3UfdPuPyru6KabjqhNJ7nzPrnhvWvDdx9n1iwkgJOEk6xv8A7rDg/wA6zK+prm1tr2B7W8t454ZBho5FDK31Brz/AMQfBnR70tPoF02nynnynzJCfp/Ev5n6VvGqnuZOm+h4zRXR618PfFuh7nudJkmhX/ltbfvUx6nHI/EVzncr3HUdxWqaexm01uFFFFAgooooAKKKKACiijuF7noO5oAKK6PRfh74t1za9tpMkMLf8trn90mPUZ5P4CvQ/D/wZ0eyKz6/dNqEo58pMxwj6/xN+Y+lS5xiUoNnlmh+G9a8SXH2fR7CScg4eTpGn+8x4H869d8I/CnSdCZL7WGTUb5fmUFf3MR9lP3j7n8q7a2tbaygS1s7eOCGMYWONQqr9AKlrCVRy2No00twooorMsKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAG7jRuNJRQKwu40bjSUUBYXcaNxpKKAsLuNG40lFAWF3GjcaSigLC7jRuNJRQFhdxo3GkooCwu40bjSUUBYXcaNxpKKAsLuNG40lFAWF3GjcaSigLC7jRuNJRQFhdxo3GkooCwu40bjSUUBYXcaNxpKKAsLuNG40lFAWF3GjcaSigLC7jRuNJRQFhdxo3GkooCwu40bjSUUBYXcaNxpKKAsLuIORWZqnhrw/rWf7V0a0uGP8bRgP8A99DB/WtKijYLHCX/AMG/Cl0S1nLfWRPZJRIo/BwT+tYd18D5wc2XiOMj0mtiD+ak16vRVqpJdSeRHi8vwW8TrnytQ02TA4+d1yfxWof+FN+L/wDnppv/AIEn/wCJr26in7WQvZo8Xi+C3idsebqGmx5HPzu2D+C1o2vwPnJze+I4wPSG2JP5sRXq9FHtZB7NHCWHwb8KWpDXkt9ekdnlEan8EAP611Ol+GvD+i4/srRrS3YfxrGC/wD30cn9a0qKhyb3ZSilsLuJOTRuNJRSHYXcaNxpKKAsLuNG40lFAWF3GjcaSigLC7jRuNJRQFhdxo3GkooCwu40bjSUUBYXcaNxpKKAsLuNG40lFAWF3GjcaSigLC7jRuNJRQFhdxo3GkooCwu40bjSUUBYXcaNxpKKAsLuNG40lFAWF3GjcaSigLC7jRuNJRQFhdxo3GkooCwu40bjSUUBYXcaNxpKKAsLuNG40lFAWF3GikooCwUU3JoyaAuOopuTRk0BcdRTcmjJoC46im5NGTQFx1FNyaMmgLjqKbk0ZNAXHUU3JoyaAuOopuTRk0BcdRTcmjJoC46im5NGTQFx1FNyaMmgLjqKbk0ZNAXHUU3JoyaAuOopuTRk0BcdRTcmjJoC46im5NGTQFx1FNyaMmgLjqKbk0ZNAXHUU3JoyaAuOopuTRk0BcdRTcmjJoC46im5NGTQFx1FNyaMmgLjqKbk0ZNAXHUU3JoyaAuOopuTRk0BcdRTcmjJoC46im5NGTQFx1FNyaMmgLjqKbk0ZNAXHUU3JoyaAuOopuTRk0BcdRTcmjJoC46im5NGTQFx1FNyaMmgLjqKbk0ZNAXHUU3JoyaAuOopuTRk0BcdRTcmjJoC46im5NGTQFx1FNyaMmgLjqKbk0ZNAXHUU3JoyaAuOopuTRk0BcdRTcmjJoC46im5NGTQFx1FNyaMmgLjqKbk0UBcKKKKAsFFFFAWCiiigLBRRRQFgooooCwUUUUBYKKKKAsFFFFAWCiiigLBRRRQFgooooCwUUUUBYKKKKAsFFFFAWCiiigLBRRRQFgooooCwUUUUBYKKKKAsFFFFAWCiiigLBRRRQFgooooCwUUUUBYKKKKAsFFFFAWCiiigLBRRRQFgooooCwUUUUBYKKKKAsFFFFAWCiiigLBRRRQFgooooCwUUUUBYKKKKAsFFFFAWCiiigLBRRRQFgooooCwUUUUBYKKKKAsFFFFAWCiiigLBRRRQFgooooCwUUUUBYZk+tGT60UUEhk+tGT60UUAGT60ZPrRRQAZPrRk+tFFABk+tGT60UUAGT60ZPrRRQAZPrRk+tFFABk+tGT60UUAGT60ZPrRRQAZPrRk+tFFABk+tGT60UUAGT60ZPrRRQAZPrRk+tFFABk+tGT60UUAGT60ZPrRRQAZPrRk+tFFABk+tGT60UUAGT60ZPrRRQAZPrRk+tFFABk+tGT60UUAGT60ZPrRRQAZPrRk+tFFABk+tGT60UUAGT60ZPrRRQAZPrRk+tFFABk+tGT60UUAGT60ZPrRRQAZPrRk+tFFABk+tGT60UUAGT60ZPrRRQAZPrRk+tFFABk+tGT60UUAGT60ZPrRRQAZPrRk+tFFABk+tGT60UUAGT60ZPrRRQAZPrRk+tFFABk+tGT60UUAGT60ZPrRRQAZPrRk+tFFABk+tGT60UUAGT60ZPrRRQAZPrRk+tFFABk+tGT60UUAGT60ZPrRRQAZPrRk+tFFABk+tGT60UUAGT60UUUAFFMooHcfRTKKAuPoplFAXH0UyigLj6KZRQFx9FMooC4+imUUBcfRTKKAuPoplFAXH0UyigLj6KZRQFx9FMooC4+imUUBcfRTKKAuPoplFAXH0UyigLj6KZRQFx9FMooC4+imUoyTgDNAXHUVi6t4u8N6HldS1i3jkH/LJG8yT/AL5XJ/OuP1P40WEe5NH0ea4PaS4cRr/3yMn9RVKEnshOSR6VQxCqXY4UdzwPzrwvUfin4wv8rDeRWSHtbRAH/vpsmuavdV1PUWL6hqN1ck/89Zmb9CcVoqL6kuouh9CXvivwzp+Rea/YREdV89WP5DJrFuvit4Lt8hL+e4I/542zEfmcV4WAB0AH0oqlRXUn2jPYZ/jToKf8e+kahL/vFE/qaoy/G5f+WHhtun8d13/Ba8soqvZRFzyPSn+NuoYHleHrUHvuuHP8gKZ/wuzVv+gBY/8Af6SvOKKPZx7BzyPSk+NmoDPm+HrU+m24cfzBqxF8bhwJ/DZ6c7Lrv+K15bRR7OPYOeR7BB8adCf/AI+NI1CL/dKP/UVqW3xW8F3GA99cW5/6bWzAfmua8LopOlEftGfRtl4s8MahgWev2EhP8PnBT+TYNaykOodCGU9COR+dfLhAPUA/WrNnqepacwew1C5tiOnlSsv6A1Lo9mNVO6PpqivCdO+KXjCwwst9HeoO1zEGP/fQwa6rTPjRZSbU1nRpYT3ktnEi/wDfLYP6modKSKVRHplFYmk+MfDOtlU0/WLdpG/5ZSHy5P8AvlsfpmtkgjgjFQ01uVcdRTKKQXH0UyigLj6KZRQFx9FMooC4+imUUBcfRTKKAuPoplFAXH0UyigLj6KZRQFx9FMooC4+imUUBcfRTKKAuPoplFAXH0UyigLj6KZRQFx9FMooC4+imUUBcfRTKKAuPoplFAXCiiinYAoooosAUUUUWAKKKKLAFFFFFgCiiiiwBRRRRYAoooosAUUUUWAKKKKLAFFFFFgCiiiiwBRRRRYAoooosAUUUUWAKKKKLAFFFVNU1fTNFtTeapexW0Q6Fzyx9FHVj7CizAt1Xv8AUbDS7c3WpXkNtCP45XCg/T1/CvM/EPxinkLW/hmzES9PtNyuWP8Aup0H45+leeahqWoarcG71K9mupj/AByuWI+noPYVpGk3uZuaWx6prnxi0y23Q6DYvev0E02Y4vwH3j+lcDrPjvxRru5LvVJI4W/5YW/7pMe+OT+JNYFFbRhGJDk2H9etFFFUSFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAdeord0bxv4o0LallqsjQr/ywn/ex/keR+BFYVFDSe472PW9D+Men3BWHX7B7RzwZoMyR/iv3h+td5p2p6dq1uLrTL6G6iP8AFE4bH17j8a+aKsWOoX2mXAu9OvJraZejxOVP4+v0NZSpJ7FKb6n0xRXlHh74w3UJW38S2gnTp9pt1CuP95Oh/DFelaTrWl65bC80q+iuY++0/MvsynlT9axcHHc0TT2LtFFFKxQUUUUWAKKKKLAFFFFFgCiiiiwBRRRRYAoooosAUUUUWAKKKKLAFFFFFgCiiiiwBRRRRYAoooosAUUUUWAKKKKLAFFFFFgCiiiiwCbvajd7UlFFxC7vajd7UlFFwF3e1G72pKKLgLu9qN3tSUUXAXd7UbvakoouAu72o3e1JRRcBd3tRu9qSii4C7vajd7UlFFwF3e1G72pKKLgLu9qN3tSUUXAXd7UbvakoouAu72o3e1JRRcBd3tRu9qSii4C7vajd7UlFFwF3e1G72pKKLgLu9qbLNHDG80zrHHGNzuzAKo9ST0rE8TeL9H8LQb7+UyXDjMVtGQZH9/9ke5/WvHPFHjTWfFMuLuXybRTmO1iJ2D3b+8fc/gBVxg5EuSR3Xij4uW1tvs/DMa3Mo4N1IP3an/ZXq31OB9a8w1LVNQ1e6a91O8luZm/jkbOB6AdAPYVVorojFR2M3JsKKKKZIUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAVZ0/Ub/Srpb3TbuW2nXo8bYP0PqPY8VWooA9W8L/F2GbZZ+KIlhfoLuJfkP++o+79Rx7CvRobiG4iSe3kSWKQbkdGDKw9QR1r5jrc8M+Mda8LTZsZvMtmOZLWQkxv7j+6fcfrWUqd9Ymin3PoPd7UbvasDwv4z0fxVD/ochiukGZLWQjevuP7y+4/HFb1YO60ZpuLu9qN3tSUUXAXd7UbvakoouAu72o3e1JRRcBd3tRu9qSii4C7vajd7UlFFwF3e1G72pKKLgLu9qN3tSUUXAXd7UbvakoouAu72o3e1JRRcBd3tRu9qSii4C7vajd7UlFFwF3e1G72pKKLgLu9qN3tSUUXAXd7UbvakoouAu72opKKLgFFFFOwBRRRRYAoooosAUUUUWAKKKKLAFFFFFgCiiiiwBRRRRYAoooosAUUUUWAKKKKLAFFFFFgCiiiiwBRRTZJI4Y2mlkVERSzMxwFA6knsKLAOrgPGnxPt9LMmmeHmjuLwZWS4+9HCfQdnb9B79KwPHPxLm1QyaT4eleKy5WS4GVecei91X9T7CvP+nArWFLqzOU+iJbq6ub24ku7yeSaaU7nkkbLMfc1FRRWxmFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFAElvcT2s6XNtM8UsTbkdGKsp9QRXq/gv4ow35j0zxK6QXJwsd192OU+jdlb36H2rySiplFS3KTaPp6ivHfA/wASJ9GMela7I81hwscxyz24/mye3UdvSvX4ZobmFLi3lWSKVQ6OhyrKehBrnlDl3NU0x9FFFKwwoooosAUUUUWAKKKKLAFFFFFgCiiiiwBRRRRYAoooosAUUUUWAKKKKLAFFFFFgCiiiiwBRRRRYAoooosAUU3d7UbvamA6im7vajd7UAOopu72o3e1ADqKbu9qN3tQA6im7vajd7UAOopu72o3e1ADqKbu9qN3tQA6im7vajd7UAOopu72o3e1ADqKbu9qN3tQA6im7vajd7UAOopu72o3e1ADqKbu9qZNcQ28L3FxIkcUal3dzhVUdSTQAXNzb2cEl1dTJFDEpd3c4VVHUk14t458fXPiaVtPsC0OmRtwvRpyP4n9vRfz56N8d+OrjxPcGysi8WmQtlEPBmYfxt/QduvXpyNbQhbVmcpX0QUUUVoZhRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABXWeB/Hl14XmFndb59MlbLx9WiJ6sn9V7/WuTooavoxp2Ppi0u7a+toryznSaCZQ8ciHIYGpq8L8D+Obnwrc/ZrnfNpszZliHJjP99Pf1Hf617db3UF3BHdWsqSwyqHR0OQynoRXPKPKzaMrk1FN3e1G72qRjqKbu9qN3tQA6im7vajd7UAOopu72o3e1ADqKbu9qN3tQA6im7vajd7UAOopu72o3e1ADqKbu9qN3tQA6im7vajd7UAOopu72o3e1ADqKbu9qN3tQA6im7vajd7UAOopu72ooASiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAAkAZJAA5JNeN/ETxydenbR9Ll/4l0LfO4/5eHHf/cHYd+vpWz8UPGpjEnhfSpfmIxeyKeg/wCeQ/8AZvy9a8vrWnDqzOcuiCiiitTMKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigArs/h944bw7cDTNSkJ0yds5PP2dz/EP9k9x+PrnjKKTSasxp2PppWV1DqwZWAIIOQR60teX/DDxqUaPwvqsvyniylY9D/zyP8A7L+XpXqFc8o8rsbJ3VwooopDCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooATd7Ubvam0UAO3e1G72ptFADt3tRu9qbRQA7d7Ubvam0UAO3e1G72ptFADt3tRu9qbRQA7d7Ubvam0UAO3e1G72ptFADt3tRu9qbRQA7d7Ubvam0UAO3e1G72ptFADt3tXMePfFy+GNL2WzD+0LsFbcddg7yEe3b1P41u6lqFppNjPqN9Jsgt0Lue/0HuTwPc14Br+t3fiHVZ9Vu+GlOETPEaD7qj6D9cmrhHmZMpWKDu8jtJI7MzEszMckk9Sfem0UVuYhRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUU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oyaSigNBcmgE7gPcUlKv3l+ooDQ8A1tzJrWoOxyWu5jn1+c1SqxqH/IQuv8ArvJ/6Gar10IwCiiigQUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQBZ01imo2jqcFbiIg+nzivoRidzfU187W/8Ar4v+ui/+hCvohvvH61nUNIBk0ZNJRWZpoLk0ZNJRQGguTRk0lFAaC5NGTSUUBoLk0ZNJRQGguTRk0lFAaC5NGTSUUBoLk0ZNJRQGguTRSUUBoFFJkUZFBItFJkUZFAC0UmRRkUALRSZFGRQAtFJkUZFAC0UmRRkUALRSZFGRQAtFJkUZFAC0q/eX6im5FKpG5fqKAPnzUP8AkIXX/XeT/wBDNV6sah/yELr/AK7yf+hmq9dCMQooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAkt/8AXxf9dF/9CFfRB6n61872/wDr4v8Arov/AKEK+hyRk/Ws6hcQopMijIrMsWikyKMigBaKTIoyKAFopMijIoAWikyKMigBaKTIoyKAFopMijIoAWikyKMigBaKTIooAbRRRQFwooooC4UUUUBcKKKKAuFFFFAXCiiigLhRRRQFwooooC4Uq/eH1FJR0oC54Fq6hNWvkUcLcygf99mqlaniiIw+JNUjOeLuQ8j1Of61l10IyYUUUUCCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAJ7FQ97bIwyGmjB+m4V9BN94/U14LoERm13Tohn5ruIcD/AGxXvR6k+9Z1DSAlFFFZlXCiiigLhRRRQFwooooC4UUUUBcKKKKAuFFFFAXCiiigLhRRRQFwopuTRk0AOopuTRk0AOopuTRk0AOopuTRk0AOopuTRk0AOopuTRk0AOopuTRk0AOopuTRk0AOopuTRk0AeNePofJ8XagMYEjJJ/30grnq7H4o25j8RRT44ntUOfdSR/hXHVvHYye4UUUUxBRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFAG54Ih8/xZpiYyFm8w/8BUn+le2V5J8Mrcy+JhNji3t5H/E4Ufzr1nJrKe5pHYdRTcmjJqCh1FNyaMmgB1FNyaMmgB1FNyaMmgB1FNyaMmgB1FNyaMmgB1FNyaMmgB1FNyaMmgB1FNyaKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAPP/iza5h02+A+68kLH6gMP5GvOaKK2hsZy3CiiiqJCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAPQvhNanfqV8R0EcIP5sf6V6JRRWMtzSOwUUUVJQUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFAH//Z" alt="Photo">
+          <div class="photo-edit ui"><span>Drag to move, click to replace</span></div>
+        </div>
+
+        <h2 class="side-heading" contenteditable data-ph="Heading">Personal details</h2>
+        <div class="details hoverable" data-list="details">
+          <div class="detail">
+            <span class="ic" data-icon="user"></span>
+            <span contenteditable data-ph="Detail">Jordan Blake</span>
+            <button class="ui rowdel" title="Remove">&times;</button>
+          </div>
+          <div class="detail">
+            <span class="ic" data-icon="mail"></span>
+            <span contenteditable data-ph="Detail">jordan.blake@example.com</span>
+            <button class="ui rowdel" title="Remove">&times;</button>
+          </div>
+          <div class="detail">
+            <span class="ic" data-icon="phone"></span>
+            <span contenteditable data-ph="Detail">+44 7700 900123</span>
+            <button class="ui rowdel" title="Remove">&times;</button>
+          </div>
+          <div class="detail">
+            <span class="ic" data-icon="home"></span>
+            <span contenteditable data-ph="Detail">Manchester, United Kingdom</span>
+            <button class="ui rowdel" title="Remove">&times;</button>
+          </div>
+          <div class="detail">
+            <span class="ic" data-icon="calendar"></span>
+            <span contenteditable data-ph="Detail">4 March 1994</span>
+            <button class="ui rowdel" title="Remove">&times;</button>
+          </div>
+          <div class="detail">
+            <span class="ic" data-icon="flag"></span>
+            <span contenteditable data-ph="Detail">British</span>
+            <button class="ui rowdel" title="Remove">&times;</button>
+          </div>
+          <button class="ui addbtn" data-add="detail">+ Add detail</button>
+        </div>
+
+        <h2 class="side-heading" contenteditable data-ph="Heading">Skills</h2>
+        <div class="skills hoverable" data-list="skills">
+          <div class="skill"><span contenteditable data-ph="Skill">Electrical Installation and Wiring</span><button class="ui rowdel" title="Remove">&times;</button></div>
+          <div class="skill"><span contenteditable data-ph="Skill">Inspection and Testing</span><button class="ui rowdel" title="Remove">&times;</button></div>
+          <div class="skill"><span contenteditable data-ph="Skill">Fault Finding and Repair</span><button class="ui rowdel" title="Remove">&times;</button></div>
+          <div class="skill"><span contenteditable data-ph="Skill">Containment and First Fix</span><button class="ui rowdel" title="Remove">&times;</button></div>
+          <div class="skill"><span contenteditable data-ph="Skill">Drone Operation and Spraying</span><button class="ui rowdel" title="Remove">&times;</button></div>
+          <div class="skill"><span contenteditable data-ph="Skill">Planned Maintenance</span><button class="ui rowdel" title="Remove">&times;</button></div>
+          <div class="skill"><span contenteditable data-ph="Skill">Working at Height</span><button class="ui rowdel" title="Remove">&times;</button></div>
+          <div class="skill"><span contenteditable data-ph="Skill">Teamwork and Handover</span><button class="ui rowdel" title="Remove">&times;</button></div>
+          <button class="ui addbtn" data-add="skill">+ Add skill</button>
+        </div>
+
+        <h2 class="side-heading" contenteditable data-ph="Heading">Languages</h2>
+        <div class="languages hoverable" data-list="languages">
+          <div class="language">
+            <span contenteditable data-ph="Language">English</span>
+            <span class="dots" data-level="5"></span>
+            <button class="ui rowdel" title="Remove">&times;</button>
+          </div>
+          <div class="language">
+            <span contenteditable data-ph="Language">Spanish</span>
+            <span class="dots" data-level="3"></span>
+            <button class="ui rowdel" title="Remove">&times;</button>
+          </div>
+          <div class="language">
+            <span contenteditable data-ph="Language">Polish</span>
+            <span class="dots" data-level="2"></span>
+            <button class="ui rowdel" title="Remove">&times;</button>
+          </div>
+          <button class="ui addbtn" data-add="language">+ Add language</button>
+        </div>
+      </aside>
+
+      <!-- ---------------- MAIN COLUMN ---------------- -->
+      <main class="main" id="main">
+
+        <section class="section" data-type="text">
+          <div class="ui toolset"><button data-act="up" title="Move up">&uarr;</button><button data-act="down" title="Move down">&darr;</button><button data-act="del" title="Delete section">&times;</button></div>
+          <h2 class="heading" contenteditable data-ph="Section">Profile</h2>
+          <p class="profile-text" contenteditable data-ph="Write a short profile">
+        Reliable site electrician with <b>seven years on commercial fit outs</b>, refurbishments and small industrial units. Recently qualified as an <b>agricultural drone operator</b>, covering survey flights and spraying. Known for turning up prepared, keeping a tidy job and finishing on time.
+      </p>
+        </section>
+
+        <section class="section" data-type="entries">
+          <div class="ui toolset"><button data-act="up" title="Move up">&uarr;</button><button data-act="down" title="Move down">&darr;</button><button data-act="del" title="Delete section">&times;</button></div>
+          <h2 class="heading" contenteditable data-ph="Section">Education</h2>
+          <div class="entries hoverable">
+            <div class="entry">
+              <div class="ui toolset"><button data-act="up" title="Move up">&uarr;</button><button data-act="down" title="Move down">&darr;</button><button data-act="del" title="Delete">&times;</button></div>
+              <div class="entry-title" contenteditable data-ph="Title">Level 3 Diploma in Electrical Installation</div>
+              <div class="entry-sub" contenteditable data-ph="Place and dates">Manchester College</div>
+              <ul class="points hoverable">
+                <li><span contenteditable data-ph="Bullet">Completed the full route from first fix through to inspection and testing.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <li><span contenteditable data-ph="Bullet">Studied <b>wiring regulations, cable calculations and fault finding</b> alongside site work.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <button class="ui addbtn" data-add="point">+ Add bullet</button>
+              </ul>
+            </div>
+            <button class="ui addbtn" data-add="entry">+ Add entry</button>
+          </div>
+        </section>
+
+        <section class="section" data-type="entries">
+          <div class="ui toolset"><button data-act="up" title="Move up">&uarr;</button><button data-act="down" title="Move down">&darr;</button><button data-act="del" title="Delete section">&times;</button></div>
+          <h2 class="heading" contenteditable data-ph="Section">Employment</h2>
+          <div class="entries hoverable">
+            <div class="entry">
+              <div class="ui toolset"><button data-act="up" title="Move up">&uarr;</button><button data-act="down" title="Move down">&darr;</button><button data-act="del" title="Delete">&times;</button></div>
+              <div class="entry-title" contenteditable data-ph="Title">Site Electrician</div>
+              <div class="entry-sub" contenteditable data-ph="Place and dates">Rowland Building Services, Manchester | 2019 to present</div>
+              <ul class="points hoverable">
+                <li><span contenteditable data-ph="Bullet">Installed conduit, trunking and containment on commercial fit outs of up to forty units.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <li><span contenteditable data-ph="Bullet">Pulled and terminated cables for lighting, power and small machinery.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <li><span contenteditable data-ph="Bullet">Tested circuits before energising and recorded the results for the handover pack.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <li><span contenteditable data-ph="Bullet">Traced and repaired faults on lighting and power circuits, often on occupied sites.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <li><span contenteditable data-ph="Bullet">Worked to the wiring regulations and site safety rules on every job.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <li><span contenteditable data-ph="Bullet">Brought two apprentices through their first year on the tools.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <button class="ui addbtn" data-add="point">+ Add bullet</button>
+              </ul>
+            </div>
+            <div class="entry">
+              <div class="ui toolset"><button data-act="up" title="Move up">&uarr;</button><button data-act="down" title="Move down">&darr;</button><button data-act="del" title="Delete">&times;</button></div>
+              <div class="entry-title" contenteditable data-ph="Title">Maintenance Electrician</div>
+              <div class="entry-sub" contenteditable data-ph="Place and dates">Halewood Facilities, Leeds | 2016 to 2019</div>
+              <ul class="points hoverable">
+                <li><span contenteditable data-ph="Bullet">Carried out planned maintenance across six sites and kept clear records of every visit.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <li><span contenteditable data-ph="Bullet">Answered breakdown calls and got equipment running again with the minimum of downtime.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <li><span contenteditable data-ph="Bullet">Serviced tools, plant and machinery to the schedule set by the maker.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <li><span contenteditable data-ph="Bullet">Fitted sockets, switches, light fittings and distribution boards.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <li><span contenteditable data-ph="Bullet">Ordered parts and kept a small van stock of the items used most.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <li><span contenteditable data-ph="Bullet">Isolated and locked off supplies before starting any work.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <li><span contenteditable data-ph="Bullet">Kept the workshop and the van tidy, stocked and ready for the next call.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <li><span contenteditable data-ph="Bullet">Handed sites over with test results, drawings and a clear summary of the work.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+                <button class="ui addbtn" data-add="point">+ Add bullet</button>
+              </ul>
+            </div>
+            <button class="ui addbtn" data-add="entry">+ Add entry</button>
+          </div>
+        </section>
+
+        <section class="section" data-type="points">
+          <div class="ui toolset"><button data-act="up" title="Move up">&uarr;</button><button data-act="down" title="Move down">&darr;</button><button data-act="del" title="Delete section">&times;</button></div>
+          <h2 class="heading" contenteditable data-ph="Section">Achievements</h2>
+          <ul class="points hoverable">
+            <li><span contenteditable data-ph="Bullet">Passed the eighteenth edition wiring regulations first time, alongside full time work.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+            <li><span contenteditable data-ph="Bullet">Completed a two month agricultural drone course covering flight control, spraying and safety.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+            <li><span contenteditable data-ph="Bullet">Cut callout times on the maintenance round by planning van stock around the six sites.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+            <li><span contenteditable data-ph="Bullet">Kept a clean safety record across seven years on commercial and occupied sites.</span><button class="ui rowdel" title="Remove">&times;</button></li>
+            <button class="ui addbtn" data-add="point">+ Add bullet</button>
+          </ul>
+        </section>
+
+        <div class="ui addbtn" id="addSection" style="position:relative;left:0;bottom:auto;opacity:1;margin-top:10px;display:inline-block">+ Add section</div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="filePhoto" accept="image/*" hidden>
+<input type="file" id="fileOpen" accept="application/json,.cvjson" hidden>
+<div class="iconpop" id="iconpop"></div>
+
+<div class="modal" id="printModal">
+  <div class="box">
+    <h2>Save your CV as a PDF</h2>
+    <ol>
+      <li>Destination: <b>Save as PDF</b></li>
+      <li>Paper size: <b>A4</b></li>
+      <li>Margins: <b>None</b> or Default</li>
+      <li>If any colour looks missing, tick <b>Background graphics</b></li>
+    </ol>
+    <div id="printWarn" style="display:none;background:#ffe9c7;border:1px solid #f0c37a;color:#7a4500;
+         border-radius:9px;padding:11px 13px;font-size:12.5px;line-height:1.5;margin-bottom:16px">
+      Your content runs onto a second page.
+      <button class="btn" id="printFit" style="margin-top:9px;width:100%">Fit it onto one page</button>
+    </div>
+    <div class="foot">
+      <button class="btn" id="printCancel">Cancel</button>
+      <button class="btn primary" id="printGo">Open print window</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var cv      = document.getElementById('cv');
+var main    = document.getElementById('main');
+var statusEl= document.getElementById('status');
+var warnEl  = document.getElementById('warn');
+var KEY     = 'cv-editor-state-v1';
+
+/* ---------------------------------------------------------
+   Icons
+   --------------------------------------------------------- */
+var ICONS = {
+  user:'M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.34 0-10 1.67-10 5v3h20v-3c0-3.33-6.66-5-10-5z',
+  mail:'M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z',
+  phone:'M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z',
+  home:'M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z',
+  calendar:'M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 16H5V10h14v10zM7 12h5v5H7v-5z',
+  flag:'M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z',
+  pin:'M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z',
+  globe:'M12 2a10 10 0 100 20 10 10 0 000-20zm6.93 6h-2.95a15.6 15.6 0 00-1.38-3.56A8.03 8.03 0 0118.93 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14A7.96 7.96 0 014 12c0-.69.1-1.36.26-2h3.38a16.6 16.6 0 000 4H4.26zm.81 2h2.95c.33 1.27.8 2.47 1.38 3.56A8.03 8.03 0 015.07 16zm2.95-8H5.07a8.03 8.03 0 014.33-3.56A15.6 15.6 0 008.02 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66a14.9 14.9 0 010-4h4.68a14.9 14.9 0 010 4zm.26 5.56c.58-1.09 1.05-2.29 1.38-3.56h2.95a8.03 8.03 0 01-4.33 3.56zM16.36 14a16.6 16.6 0 000-4h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z',
+  link:'M3.9 12a5 5 0 015-5h3v1.9h-3a3.1 3.1 0 000 6.2h3V17h-3a5 5 0 01-5-5zm5.1 1v-2h6v2H9zm6-6h-3v1.9h3a3.1 3.1 0 010 6.2h-3V17h3a5 5 0 000-10z',
+  briefcase:'M10 4h4a2 2 0 012 2v2h4a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2v-9a2 2 0 012-2h4V6a2 2 0 012-2zm4 4V6h-4v2h4z',
+  car:'M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8a1 1 0 001 1h1a1 1 0 001-1v-1h12v1a1 1 0 001 1h1a1 1 0 001-1v-8l-2.08-5.99zM6.5 16a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm11 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM5 11l1.5-4.5h11L19 11H5z',
+  award:'M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8L12 2zm0 15.5l4 2.1V22l-4-2-4 2v-4.4l4-2.1z',
+  heart:'M12 21s-7.5-4.7-9.3-9A5.4 5.4 0 0112 5.3 5.4 5.4 0 0121.3 12c-1.8 4.3-9.3 9-9.3 9z',
+  book:'M4 4h6a3 3 0 013 3v13a3 3 0 00-3-2H4V4zm16 0h-6a3 3 0 00-3 3v13a3 3 0 013-2h6V4z',
+  clock:'M12 2a10 10 0 100 20 10 10 0 000-20zm1 10.6l4 2.3-.8 1.4-5-2.9V6h1.8v6.6z'
+};
+function iconSvg(name){
+  var d = ICONS[name] || ICONS.pin;
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+d+'"></path></svg>';
+}
+function paintIcons(){
+  var list = cv.querySelectorAll('.ic');
+  for(var i=0;i<list.length;i++){
+    var el = list[i];
+    if(el.getAttribute('data-painted') !== el.getAttribute('data-icon')){
+      el.innerHTML = iconSvg(el.getAttribute('data-icon'));
+      el.setAttribute('data-painted', el.getAttribute('data-icon'));
+    }
+  }
+}
+
+/* ---------------------------------------------------------
+   Language dots
+   --------------------------------------------------------- */
+function paintDots(){
+  var groups = cv.querySelectorAll('.dots');
+  for(var i=0;i<groups.length;i++){
+    var g = groups[i];
+    var level = parseInt(g.getAttribute('data-level')||'0', 10);
+    if(g.children.length !== 5){
+      g.innerHTML = '';
+      for(var d=1;d<=5;d++){
+        var b = document.createElement('button');
+        b.className = 'dot';
+        b.setAttribute('data-i', d);
+        b.type = 'button';
+        g.appendChild(b);
+      }
+    }
+    for(var k=0;k<5;k++){
+      g.children[k].className = (k < level) ? 'dot on' : 'dot';
+    }
+  }
+}
+
+/* ---------------------------------------------------------
+   Colour schemes
+   --------------------------------------------------------- */
+var SCHEMES = [
+  {n:'Royal',    c:{'--brand-dark':'#45608a','--brand-heading':'#5d7da8','--brand-sub':'#7191b7','--sidebar-bg':'#f4f5f7','--icon':'#3d4a5c','--dot-on':'#3c6194','--dot-off':'#d7dade','--text':'#2e2e2e'}},
+  {n:'Navy',     c:{'--brand-dark':'#1f3b63','--brand-heading':'#2f5183','--brand-sub':'#4e74a6','--sidebar-bg':'#f2f4f8','--icon':'#26374d','--dot-on':'#1f3b63','--dot-off':'#d5dae2','--text':'#242a33'}},
+  {n:'Charcoal', c:{'--brand-dark':'#3a3f47','--brand-heading':'#4d545e','--brand-sub':'#6b727d','--sidebar-bg':'#f4f5f6','--icon':'#3a3f47','--dot-on':'#4d545e','--dot-off':'#d8dadd','--text':'#2b2e33'}},
+  {n:'Emerald',  c:{'--brand-dark':'#1f5f4b','--brand-heading':'#2f7a62','--brand-sub':'#4f9c83','--sidebar-bg':'#f1f7f4','--icon':'#23594a','--dot-on':'#2f7a62','--dot-off':'#d6e2dd','--text':'#26302c'}},
+  {n:'Burgundy', c:{'--brand-dark':'#6f2630','--brand-heading':'#8b3c46','--brand-sub':'#ab626b','--sidebar-bg':'#faf3f4','--icon':'#5f242c','--dot-on':'#8b3c46','--dot-off':'#e2d6d8','--text':'#2f2628'}},
+  {n:'Teal',     c:{'--brand-dark':'#14596b','--brand-heading':'#1f7288','--brand-sub':'#3f93a9','--sidebar-bg':'#f0f6f8','--icon':'#17505f','--dot-on':'#1f7288','--dot-off':'#d4dfe3','--text':'#232c30'}},
+  {n:'Plum',     c:{'--brand-dark':'#4b3a72','--brand-heading':'#64508f','--brand-sub':'#8271ab','--sidebar-bg':'#f6f4fa','--icon':'#453668','--dot-on':'#64508f','--dot-off':'#dcd8e4','--text':'#2b2733'}},
+  {n:'Bronze',   c:{'--brand-dark':'#6f5326','--brand-heading':'#8d6d3a','--brand-sub':'#ab8d5e','--sidebar-bg':'#faf6ef','--icon':'#5f4820','--dot-on':'#8d6d3a','--dot-off':'#e2dbcd','--text':'#2f2a22'}},
+  {n:'Slate',    c:{'--brand-dark':'#23262b','--brand-heading':'#3b4048','--brand-sub':'#5d636d','--sidebar-bg':'#f5f5f6','--icon':'#23262b','--dot-on':'#3b4048','--dot-off':'#d9dadd','--text':'#26292e'}},
+  {n:'Ocean',    c:{'--brand-dark':'#0f4c81','--brand-heading':'#2168a5','--brand-sub':'#4a8cc4','--sidebar-bg':'#f1f5fa','--icon':'#16405f','--dot-on':'#2168a5','--dot-off':'#d5dee8','--text':'#222a33'}},
+  {n:'Forest',   c:{'--brand-dark':'#2f4a34','--brand-heading':'#436a4a','--brand-sub':'#6a8f71','--sidebar-bg':'#f3f6f3','--icon':'#2c4531','--dot-on':'#436a4a','--dot-off':'#d8dfd9','--text':'#282d29'}},
+  {n:'Rose',     c:{'--brand-dark':'#8a4a5e','--brand-heading':'#a86179','--brand-sub':'#c2879b','--sidebar-bg':'#fbf4f6','--icon':'#7b3f52','--dot-on':'#a86179','--dot-off':'#e6d9de','--text':'#2f272a'}}
+];
+
+var FONTS = [
+  ['Helvetica, Arial',      '"Helvetica Neue", Helvetica, Arial, sans-serif'],
+  ['Verdana',               'Verdana, Geneva, sans-serif'],
+  ['Tahoma',                'Tahoma, Geneva, sans-serif'],
+  ['Trebuchet MS',          '"Trebuchet MS", Tahoma, sans-serif'],
+  ['Gill Sans',             '"Gill Sans", "Gill Sans MT", Calibri, sans-serif'],
+  ['Optima',                'Optima, Candara, "Segoe UI", sans-serif'],
+  ['Georgia',               'Georgia, "Times New Roman", serif'],
+  ['Times New Roman',       '"Times New Roman", Times, serif'],
+  ['Palatino',              'Palatino, "Palatino Linotype", Georgia, serif'],
+  ['Baskerville',           'Baskerville, Georgia, serif'],
+  ['Courier',               '"Courier New", Courier, monospace']
+];
+
+/* ---------------------------------------------------------
+   Settings (CSS variables) plumbing
+   --------------------------------------------------------- */
+var settings = {};
+
+function applyVar(name, value){
+  settings[name] = value;
+  cv.style.setProperty(name, value);
+  var out = document.querySelector('.val[data-for="'+name+'"]');
+  if(out) out.textContent = value;
+}
+function readVar(name){
+  return (settings[name] !== undefined)
+    ? settings[name]
+    : getComputedStyle(cv).getPropertyValue(name).trim();
+}
+
+function buildPanel(){
+  /* colour schemes */
+  var box = document.getElementById('schemes');
+  SCHEMES.forEach(function(s, idx){
+    var b = document.createElement('button');
+    b.className = 'scheme';
+    b.type = 'button';
+    b.setAttribute('data-idx', idx);
+    b.title = s.n;
+    b.innerHTML = '<i style="background:'+s.c['--brand-dark']+'"></i>'
+                + '<i style="background:'+s.c['--brand-heading']+'"></i>'
+                + '<i style="background:'+s.c['--sidebar-bg']+'"></i>'
+                + '<span>'+s.n+'</span>';
+    box.appendChild(b);
+  });
+  box.addEventListener('click', function(e){
+    var b = e.target.closest('.scheme');
+    if(!b) return;
+    var s = SCHEMES[parseInt(b.getAttribute('data-idx'),10)];
+    Object.keys(s.c).forEach(function(k){ applyVar(k, s.c[k]); });
+    syncInputs();
+    save();
+  });
+
+  /* font dropdowns */
+  document.querySelectorAll('.fontsel').forEach(function(sel){
+    FONTS.forEach(function(f){
+      var o = document.createElement('option');
+      o.value = f[1]; o.textContent = f[0];
+      o.style.fontFamily = f[1];
+      sel.appendChild(o);
+    });
+  });
+
+  /* every control that writes a CSS variable */
+  document.querySelectorAll('[data-var]').forEach(function(input){
+    input.addEventListener('input', function(){
+      var unit = input.getAttribute('data-unit') || '';
+      applyVar(input.getAttribute('data-var'), input.value + unit);
+      checkFit(); save();
+    });
+  });
+
+  /* sidebar side */
+  document.getElementById('sidePos').addEventListener('click', function(e){
+    var b = e.target.closest('.pill'); if(!b) return;
+    this.querySelectorAll('.pill').forEach(function(p){ p.classList.remove('active'); });
+    b.classList.add('active');
+    cv.setAttribute('data-side', b.getAttribute('data-side'));
+    settings.side = b.getAttribute('data-side');
+    save();
+  });
+
+  /* photo shape */
+  document.getElementById('photoShape').addEventListener('click', function(e){
+    var b = e.target.closest('.pill'); if(!b) return;
+    this.querySelectorAll('.pill').forEach(function(p){ p.classList.remove('active'); });
+    b.classList.add('active');
+    if(b.getAttribute('data-photo') === 'off'){
+      cv.setAttribute('data-photo','off');
+      settings.photo = 'off';
+    }else{
+      cv.setAttribute('data-photo','on');
+      settings.photo = 'on';
+      applyVar('--photo-radius', b.getAttribute('data-radius'));
+    }
+    checkFit(); save();
+  });
+}
+
+function syncInputs(){
+  document.querySelectorAll('[data-var]').forEach(function(input){
+    var name = input.getAttribute('data-var');
+    var v = readVar(name);
+    if(input.type === 'color'){
+      input.value = toHex(v);
+    }else if(input.type === 'range'){
+      input.value = parseFloat(v);
+      var out = document.querySelector('.val[data-for="'+name+'"]');
+      if(out) out.textContent = v;
+    }else{
+      input.value = v;
+    }
+  });
+}
+
+function toHex(c){
+  c = (c||'').trim();
+  if(c.charAt(0) === '#'){
+    if(c.length === 4) return '#'+c[1]+c[1]+c[2]+c[2]+c[3]+c[3];
+    return c;
+  }
+  var m = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if(!m) return '#000000';
+  return '#' + [1,2,3].map(function(i){
+    return ('0'+parseInt(m[i],10).toString(16)).slice(-2);
+  }).join('');
+}
+
+/* ---------------------------------------------------------
+   Row and section editing
+   --------------------------------------------------------- */
+function el(html){
+  var t = document.createElement('template');
+  t.innerHTML = html.trim();
+  return t.content.firstElementChild;
+}
+var DEL = '<button class="ui rowdel" title="Remove">&times;</button>';
+
+function addRow(kind, host){
+  var node;
+  if(kind === 'detail'){
+    node = el('<div class="detail"><span class="ic" data-icon="pin"></span><span contenteditable data-ph="Detail"></span>'+DEL+'</div>');
+  }else if(kind === 'skill'){
+    node = el('<div class="skill"><span contenteditable data-ph="Skill"></span>'+DEL+'</div>');
+  }else if(kind === 'language'){
+    node = el('<div class="language"><span contenteditable data-ph="Language"></span><span class="dots" data-level="3"></span>'+DEL+'</div>');
+  }else if(kind === 'point'){
+    node = el('<li><span contenteditable data-ph="Bullet"></span>'+DEL+'</li>');
+  }else if(kind === 'entry'){
+    node = el('<div class="entry">'
+      + '<div class="ui toolset"><button data-act="up">&uarr;</button><button data-act="down">&darr;</button><button data-act="del">&times;</button></div>'
+      + '<div class="entry-title" contenteditable data-ph="Title"></div>'
+      + '<div class="entry-sub" contenteditable data-ph="Place and dates"></div>'
+      + '<ul class="points hoverable"><li><span contenteditable data-ph="Bullet"></span>'+DEL+'</li>'
+      + '<button class="ui addbtn" data-add="point">+ Add bullet</button></ul></div>');
+  }
+  if(!node) return;
+  var anchor = host.querySelector(':scope > .addbtn');
+  host.insertBefore(node, anchor);
+  paintIcons(); paintDots(); checkFit(); save();
+  var focusable = node.querySelector('[contenteditable]');
+  if(focusable) focusable.focus();
+}
+
+function addSection(){
+  var s = el('<section class="section" data-type="points">'
+    + '<div class="ui toolset"><button data-act="up">&uarr;</button><button data-act="down">&darr;</button><button data-act="del">&times;</button></div>'
+    + '<h2 class="heading" contenteditable data-ph="Section"></h2>'
+    + '<ul class="points hoverable"><li><span contenteditable data-ph="Bullet"></span>'+DEL+'</li>'
+    + '<button class="ui addbtn" data-add="point">+ Add bullet</button></ul></section>');
+  main.insertBefore(s, document.getElementById('addSection'));
+  checkFit(); save();
+  s.querySelector('.heading').focus();
+}
+
+cv.addEventListener('click', function(e){
+  var t = e.target;
+
+  /* language level */
+  var dot = t.closest('.dot');
+  if(dot){
+    dot.parentNode.setAttribute('data-level', dot.getAttribute('data-i'));
+    paintDots(); save();
+    return;
+  }
+
+  /* remove a row */
+  if(t.closest('.rowdel')){
+    var row = t.closest('.detail, .skill, .language, li');
+    if(row) row.remove();
+    checkFit(); save();
+    return;
+  }
+
+  /* add a row */
+  var add = t.closest('.addbtn');
+  if(add){
+    addRow(add.getAttribute('data-add'), add.parentNode);
+    return;
+  }
+
+  /* move or delete a section or an entry */
+  var tool = t.closest('.toolset button');
+  if(tool){
+    var block = tool.closest('.entry') || tool.closest('.section');
+    var act = tool.getAttribute('data-act');
+    if(act === 'del'){
+      block.remove();
+    }else if(act === 'up' && block.previousElementSibling && block.previousElementSibling.matches('.entry, .section')){
+      block.parentNode.insertBefore(block, block.previousElementSibling);
+    }else if(act === 'down'){
+      var next = block.nextElementSibling;
+      if(next && next.matches('.entry, .section')) block.parentNode.insertBefore(next, block);
+    }
+    checkFit(); save();
+    return;
+  }
+
+  /* icon picker */
+  var ic = t.closest('.ic');
+  if(ic){ openIconPop(ic); return; }
+});
+
+/* icon picker popover */
+var pop = document.getElementById('iconpop');
+var popTarget = null;
+Object.keys(ICONS).forEach(function(name){
+  var b = document.createElement('button');
+  b.type = 'button';
+  b.setAttribute('data-icon', name);
+  b.title = name;
+  b.innerHTML = iconSvg(name);
+  pop.appendChild(b);
+});
+function openIconPop(target){
+  popTarget = target;
+  var r = target.getBoundingClientRect();
+  pop.classList.add('show');
+  pop.style.left = (r.left + window.scrollX) + 'px';
+  pop.style.top  = (r.bottom + window.scrollY + 6) + 'px';
+}
+pop.addEventListener('click', function(e){
+  var b = e.target.closest('button[data-icon]');
+  if(!b || !popTarget) return;
+  popTarget.setAttribute('data-icon', b.getAttribute('data-icon'));
+  paintIcons(); pop.classList.remove('show'); save();
+});
+document.addEventListener('click', function(e){
+  if(!e.target.closest('.iconpop') && !e.target.closest('.ic')) pop.classList.remove('show');
+});
+
+document.getElementById('addSection').addEventListener('click', addSection);
+
+/* paste as plain text so pasted formatting never breaks the design */
+cv.addEventListener('paste', function(e){
+  if(!e.target.closest('[contenteditable]')) return;
+  e.preventDefault();
+  var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+  document.execCommand('insertText', false, text);
+});
+
+/* Enter inside a bullet makes the next bullet instead of a new paragraph */
+cv.addEventListener('keydown', function(e){
+  if(e.key !== 'Enter' || e.shiftKey) return;
+  var li = e.target.closest('li');
+  if(li && li.parentNode.classList.contains('points')){
+    e.preventDefault();
+    var node = el('<li><span contenteditable data-ph="Bullet"></span>'+DEL+'</li>');
+    li.parentNode.insertBefore(node, li.nextSibling);
+    node.querySelector('[contenteditable]').focus();
+    checkFit(); save();
+  }
+});
+
+cv.addEventListener('input', function(){ checkFit(); save(); });
+
+/* ---------------------------------------------------------
+   Photo: upload, drag to reposition, zoom
+   --------------------------------------------------------- */
+var photo = document.getElementById('photo');
+var filePhoto = document.getElementById('filePhoto');
+
+document.getElementById('btnPhoto').addEventListener('click', function(){ filePhoto.click(); });
+cv.addEventListener('click', function(e){
+  if(e.target.closest('.photo-edit') && !dragMoved) filePhoto.click();
+});
+
+filePhoto.addEventListener('change', function(){
+  var f = this.files && this.files[0];
+  if(!f) return;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var img = new Image();
+    img.onload = function(){
+      /* scale big photos down so the saved file stays small */
+      var max = 900;
+      var w = img.width, h = img.height;
+      if(Math.max(w,h) > max){
+        var s = max / Math.max(w,h);
+        w = Math.round(w*s); h = Math.round(h*s);
+      }
+      var c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      photo.src = c.toDataURL('image/jpeg', 0.92);
+      applyVar('--photo-x','50%'); applyVar('--photo-y','50%');
+      cv.setAttribute('data-photo','on');
+      settings.photo = 'on';
+      save();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(f);
+  this.value = '';
+});
+
+/* drag the picture inside its frame */
+var dragging = false, dragMoved = false, startX = 0, startY = 0, baseX = 50, baseY = 50;
+cv.addEventListener('mousedown', function(e){
+  if(!e.target.closest('.photo-edit')) return;
+  dragging = true; dragMoved = false;
+  startX = e.clientX; startY = e.clientY;
+  baseX = parseFloat(readVar('--photo-x')) || 50;
+  baseY = parseFloat(readVar('--photo-y')) || 50;
+  e.preventDefault();
+});
+document.addEventListener('mousemove', function(e){
+  if(!dragging) return;
+  var dx = e.clientX - startX, dy = e.clientY - startY;
+  if(Math.abs(dx) > 2 || Math.abs(dy) > 2) dragMoved = true;
+  var size = parseFloat(readVar('--photo-size')) || 176;
+  applyVar('--photo-x', clamp(baseX - dx/size*100) + '%');
+  applyVar('--photo-y', clamp(baseY - dy/size*100) + '%');
+});
+document.addEventListener('mouseup', function(){
+  if(dragging){ dragging = false; save(); setTimeout(function(){ dragMoved = false; }, 60); }
+});
+function clamp(v){ return Math.max(0, Math.min(100, v)); }
+
+/* ---------------------------------------------------------
+   One page check and auto fit
+   --------------------------------------------------------- */
+function overflowPx(){
+  var pageBottom = cv.getBoundingClientRect().bottom - 18;
+  var worst = 0;
+  ['.main', '.sidebar'].forEach(function(sel){
+    var col = cv.querySelector(sel);
+    var kids = col.children;
+    for(var i=0;i<kids.length;i++){
+      if(kids[i].id === 'addSection') continue;
+      var b = kids[i].getBoundingClientRect().bottom;
+      if(b - pageBottom > worst) worst = b - pageBottom;
+    }
+  });
+  return Math.round(worst);
+}
+function checkFit(){
+  warnEl.classList.toggle('show', overflowPx() > 0);
+}
+function autoFit(){
+  var fs = parseFloat(readVar('--fs-body'));
+  var gap = parseFloat(readVar('--gap-section'));
+  var lh = parseFloat(readVar('--lh-body'));
+  var guard = 0;
+  while(overflowPx() > 0 && guard < 60){
+    if(lh > 1.26){ lh = Math.round((lh - 0.02)*100)/100; applyVar('--lh-body', String(lh)); }
+    else if(gap > 10){ gap -= 1; applyVar('--gap-section', gap + 'px'); }
+    else if(fs > 9.5){ fs = Math.round((fs - 0.1)*10)/10; applyVar('--fs-body', fs + 'px'); }
+    else break;
+    guard++;
+  }
+  /* if there is plenty of room, grow back a little */
+  guard = 0;
+  while(overflowPx() < -40 && fs < 13 && guard < 30){
+    fs = Math.round((fs + 0.1)*10)/10; applyVar('--fs-body', fs + 'px');
+    if(overflowPx() > 0){ fs = Math.round((fs - 0.1)*10)/10; applyVar('--fs-body', fs + 'px'); break; }
+    guard++;
+  }
+  syncInputs(); checkFit(); save();
+}
+document.getElementById('btnFit').addEventListener('click', autoFit);
+
+/* ---------------------------------------------------------
+   Saving
+   --------------------------------------------------------- */
+var saveTimer = null;
+function save(){
+  statusEl.textContent = 'Saving';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){
+    try{
+      localStorage.setItem(KEY, JSON.stringify(state()));
+      statusEl.textContent = 'Saved';
+    }catch(err){
+      statusEl.textContent = 'Could not save, the photo may be too large';
+    }
+  }, 400);
+}
+function state(){
+  var clone = cv.cloneNode(true);
+  stripUi(clone);
+  return { html: clone.innerHTML, settings: settings, side: cv.getAttribute('data-side'), photo: cv.getAttribute('data-photo') };
+}
+function stripUi(node){
+  node.querySelectorAll('.ui').forEach(function(n){ n.remove(); });
+  node.querySelectorAll('[contenteditable]').forEach(function(n){ n.removeAttribute('contenteditable'); });
+  return node;
+}
+function restore(data){
+  cv.innerHTML = data.html;
+  cv.setAttribute('data-side', data.side || 'left');
+  cv.setAttribute('data-photo', data.photo || 'on');
+  settings = data.settings || {};
+  Object.keys(settings).forEach(function(k){
+    if(k.indexOf('--') === 0) cv.style.setProperty(k, settings[k]);
+  });
+  rebuildUi();
+  photo = document.getElementById('photo');
+  syncInputs(); paintIcons(); paintDots(); syncPills(); checkFit();
+}
+
+/* put the editing controls back after a restore */
+function rebuildUi(){
+  cv.querySelectorAll('.name, .side-heading, .heading, .entry-title, .entry-sub, .profile-text,'
+    + ' .detail > span:not(.ic), .skill > span, .language > span:not(.dots), li > span').forEach(function(n){
+    n.setAttribute('contenteditable','');
+  });
+  cv.querySelectorAll('.detail, .skill, .language, .points li').forEach(function(row){
+    if(!row.querySelector('.rowdel')) row.insertAdjacentHTML('beforeend', DEL);
+  });
+  var adds = [['.details','detail','+ Add detail'], ['.skills','skill','+ Add skill'],
+              ['.languages','language','+ Add language'], ['.points','point','+ Add bullet'],
+              ['.entries','entry','+ Add entry']];
+  adds.forEach(function(a){
+    cv.querySelectorAll(a[0]).forEach(function(host){
+      host.classList.add('hoverable');
+      if(!host.querySelector(':scope > .addbtn')){
+        host.insertAdjacentHTML('beforeend','<button class="ui addbtn" data-add="'+a[1]+'">'+a[2]+'</button>');
+      }
+    });
+  });
+  cv.querySelectorAll('.section, .entry').forEach(function(block){
+    if(!block.querySelector(':scope > .toolset')){
+      block.insertAdjacentHTML('afterbegin','<div class="ui toolset"><button data-act="up">&uarr;</button><button data-act="down">&darr;</button><button data-act="del">&times;</button></div>');
+    }
+  });
+  var wrap = cv.querySelector('.photo-wrap');
+  if(wrap && !wrap.querySelector('.photo-edit')){
+    wrap.insertAdjacentHTML('beforeend','<div class="photo-edit ui"><span>Drag to move, click to replace</span></div>');
+  }
+  var m = cv.querySelector('.main');
+  if(m && !document.getElementById('addSection')){
+    m.insertAdjacentHTML('beforeend','<div class="ui addbtn" id="addSection" style="position:relative;left:0;bottom:auto;opacity:1;margin-top:10px;display:inline-block">+ Add section</div>');
+    document.getElementById('addSection').addEventListener('click', addSection);
+  }
+  main = cv.querySelector('.main');
+}
+
+function syncPills(){
+  var side = cv.getAttribute('data-side');
+  document.querySelectorAll('#sidePos .pill').forEach(function(p){
+    p.classList.toggle('active', p.getAttribute('data-side') === side);
+  });
+  var radius = readVar('--photo-radius');
+  document.querySelectorAll('#photoShape .pill').forEach(function(p){
+    if(p.getAttribute('data-photo') === 'off'){
+      p.classList.toggle('active', cv.getAttribute('data-photo') === 'off');
+    }else{
+      p.classList.toggle('active', cv.getAttribute('data-photo') !== 'off' && p.getAttribute('data-radius') === radius);
+    }
+  });
+}
+
+/* ---------------------------------------------------------
+   Save a copy, open a copy, export clean HTML, reset
+   --------------------------------------------------------- */
+function download(name, text, type){
+  var blob = new Blob([text], {type: type || 'text/plain'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function cvName(){
+  var n = cv.querySelector('.name');
+  return ((n && n.textContent.trim()) || 'CV').replace(/[^\w\s-]/g,'').trim() || 'CV';
+}
+document.getElementById('btnSaveFile').addEventListener('click', function(){
+  download(cvName() + '.cvjson', JSON.stringify(state()), 'application/json');
+});
+document.getElementById('btnOpenFile').addEventListener('click', function(){
+  document.getElementById('fileOpen').click();
+});
+document.getElementById('fileOpen').addEventListener('change', function(){
+  var f = this.files && this.files[0]; if(!f) return;
+  var r = new FileReader();
+  r.onload = function(ev){
+    try{ restore(JSON.parse(ev.target.result)); save(); }
+    catch(err){ alert('That file could not be read.'); }
+  };
+  r.readAsText(f); this.value = '';
+});
+document.getElementById('btnExportHtml').addEventListener('click', function(){
+  var clone = stripUi(cv.cloneNode(true));
+  var vars = Object.keys(settings).filter(function(k){ return k.indexOf('--') === 0; })
+    .map(function(k){ return k + ':' + settings[k] + ';'; }).join('');
+  var css = document.getElementById('cv-css').textContent;
+  var html = '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<title>'
+    + cvName() + '</title>\n<style>\nbody{margin:0;background:#fff;}\n' + css
+    + '\n#cv{' + vars + '}\n@media screen{body{background:#e9ecf1;padding:20px 0;}#cv{margin:0 auto;box-shadow:0 6px 28px rgba(0,0,0,.18);}}\n'
+    + '</style>\n</head>\n<body>\n<div id="cv" data-side="' + cv.getAttribute('data-side')
+    + '" data-photo="' + cv.getAttribute('data-photo') + '">' + clone.innerHTML + '</div>\n</body>\n</html>';
+  download(cvName() + '.html', html, 'text/html');
+});
+document.getElementById('btnReset').addEventListener('click', function(){
+  if(!confirm('Put the CV back to how it started? Anything you changed will be lost.')) return;
+  localStorage.removeItem(KEY);
+  location.reload();
+});
+
+/* ---------------------------------------------------------
+   PDF
+   --------------------------------------------------------- */
+var modal = document.getElementById('printModal');
+var printWarn = document.getElementById('printWarn');
+document.getElementById('btnPdf').addEventListener('click', function(){
+  printWarn.style.display = overflowPx() > 0 ? 'block' : 'none';
+  modal.classList.add('show');
+});
+document.getElementById('printFit').addEventListener('click', function(){
+  autoFit();
+  printWarn.style.display = overflowPx() > 0 ? 'block' : 'none';
+});
+document.getElementById('printCancel').addEventListener('click', function(){ modal.classList.remove('show'); });
+document.getElementById('printGo').addEventListener('click', function(){
+  modal.classList.remove('show');
+  var old = document.title;
+  document.title = cvName() + ' CV';           /* Chrome suggests this as the file name */
+  window.print();
+  setTimeout(function(){ document.title = old; }, 800);
+});
+
+/* ---------------------------------------------------------
+   Start
+   --------------------------------------------------------- */
+var ORIGINAL = { html: cv.innerHTML, side:'left', photo:'on' };
+buildPanel();
+paintIcons();
+paintDots();
+
+var saved = null;
+try{ saved = JSON.parse(localStorage.getItem(KEY)); }catch(err){ saved = null; }
+if(saved && saved.html){ restore(saved); }
+else{ syncInputs(); syncPills(); checkFit(); }
+
+window.addEventListener('resize', checkFit);
+})();
+</script>
+</body>
+</html>

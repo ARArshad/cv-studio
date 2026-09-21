@@ -1,0 +1,170 @@
+<body>
+<div class="app">
+
+  <!-- ============================ PANEL ============================ -->
+  <aside class="panel">
+    <div class="phead">
+      <h1>CV Studio</h1>
+      <p>Click anything on the page to edit it. Everything saves as you go.</p>
+      <div class="acts">
+        <button class="btn primary w4" id="btnPdf">Download PDF</button>
+        <button class="btn" id="btnUndo" title="Cmd Z">Undo</button>
+        <button class="btn" id="btnRedo" title="Shift Cmd Z">Redo</button>
+        <button class="btn" id="btnPhoto">Photo</button>
+        <button class="btn" id="btnFit">Fit</button>
+        <button class="btn w2" id="btnSaveFile">Save a copy</button>
+        <button class="btn w2" id="btnOpenFile">Open a copy</button>
+        <button class="btn w2" id="btnWord">Word file</button>
+        <button class="btn w2" id="btnHtml">Clean HTML</button>
+        <button class="btn bad w4" id="btnReset">Start again from the original</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab on" data-tab="design">Design</button>
+      <button class="tab" data-tab="templates">Templates</button>
+      <button class="tab" data-tab="sections">Sections</button>
+      <button class="tab" data-tab="phrases">Phrases</button>
+      <button class="tab" data-tab="checks">Check</button>
+    </div>
+
+    <div class="tabpanes">
+
+      <!-- ---------------- DESIGN ---------------- -->
+      <div class="pane on" data-pane="design">
+        <div class="sub">Colour scheme</div>
+        <div class="schemes" id="schemes"></div>
+
+        <div class="sub">Your own colours</div>
+        <div class="two">
+          <div class="row"><label>Main colour</label><input type="color" data-var="--brand"></div>
+          <div class="row"><label>Headings</label><input type="color" data-var="--brand-2"></div>
+          <div class="row"><label>Sub lines</label><input type="color" data-var="--brand-3"></div>
+          <div class="row"><label>Sidebar tint</label><input type="color" data-var="--side-bg"></div>
+          <div class="row"><label>Body text</label><input type="color" data-var="--ink"></div>
+          <div class="row"><label>Level marks</label><input type="color" data-var="--dot-on"></div>
+        </div>
+
+        <div class="sub">Type</div>
+        <div class="row"><label>Body font</label><select data-var="--font-body" class="fontsel"></select></div>
+        <div class="row"><label>Heading font</label><select data-var="--font-head" class="fontsel"></select></div>
+        <div class="row"><label>Body size <span class="v" data-for="--fs-body"></span></label>
+          <input type="range" data-var="--fs-body" min="9" max="15" step="0.1" data-unit="px"></div>
+        <div class="row"><label>Heading size <span class="v" data-for="--fs-head"></span></label>
+          <input type="range" data-var="--fs-head" min="11" max="30" step="0.5" data-unit="px"></div>
+        <div class="row"><label>Name size <span class="v" data-for="--fs-name"></span></label>
+          <input type="range" data-var="--fs-name" min="14" max="40" step="0.5" data-unit="px"></div>
+        <div class="row"><label>Line spacing <span class="v" data-for="--lh"></span></label>
+          <input type="range" data-var="--lh" min="1.15" max="1.85" step="0.02"></div>
+
+        <div class="sub">Spacing</div>
+        <div class="row"><label>Between sections <span class="v" data-for="--gap"></span></label>
+          <input type="range" data-var="--gap" min="8" max="40" step="1" data-unit="px"></div>
+        <div class="row"><label>Page margin <span class="v" data-for="--pad-x"></span></label>
+          <input type="range" data-var="--pad-x" min="18" max="64" step="1" data-unit="px"></div>
+        <div class="row"><label>Top margin <span class="v" data-for="--pad-y"></span></label>
+          <input type="range" data-var="--pad-y" min="16" max="60" step="1" data-unit="px"></div>
+        <div class="row"><label>Sidebar width <span class="v" data-for="--side-w"></span></label>
+          <input type="range" data-var="--side-w" min="24" max="50" step="0.5" data-unit="%"></div>
+
+        <div class="sub">Photo</div>
+        <div class="row"><label>Shape</label>
+          <div class="two" style="grid-template-columns:repeat(4,1fr)" id="photoShape">
+            <button class="pill" data-radius="50%">Circle</button>
+            <button class="pill" data-radius="12px">Round</button>
+            <button class="pill" data-radius="0px">Square</button>
+            <button class="pill" data-photo="off">None</button>
+          </div>
+        </div>
+        <div class="row"><label>Size <span class="v" data-for="--photo-size"></span></label>
+          <input type="range" data-var="--photo-size" min="90" max="230" step="2" data-unit="px"></div>
+        <div class="row"><label>Zoom <span class="v" data-for="--photo-zoom"></span></label>
+          <input type="range" data-var="--photo-zoom" min="1" max="2.4" step="0.01"></div>
+        <p class="hint">Drag the photo itself to move the face inside its frame.</p>
+
+        <div class="sub">Extras</div>
+        <div class="row"><label>Skill and language style</label>
+          <select id="skillStyle">
+            <option value="dots">Dots</option>
+            <option value="bars">Bars</option>
+            <option value="tags">Tags</option>
+            <option value="plain">Plain list</option>
+          </select>
+        </div>
+        <div class="row"><label>Dates</label>
+          <select id="dateStyle">
+            <option value="right">On the right of the job title</option>
+            <option value="under">Under the job title</option>
+            <option value="hidden">Hidden</option>
+          </select>
+        </div>
+        <div class="row"><label>Contact icons</label>
+          <select id="iconStyle"><option value="1">Show icons</option><option value="0">No icons</option></select>
+        </div>
+      </div>
+
+      <!-- ---------------- TEMPLATES ---------------- -->
+      <div class="pane" data-pane="templates">
+        <p class="hint" style="margin-bottom:12px">Everything you have typed moves across when you switch, so try as many as you like.</p>
+        <div class="tpls" id="tpls"></div>
+      </div>
+
+      <!-- ---------------- SECTIONS ---------------- -->
+      <div class="pane" data-pane="sections">
+        <p class="hint" style="margin-bottom:12px">Drag to reorder. The arrow moves a section between the sidebar and the main column, the eye hides it, the cross removes it.</p>
+        <div class="seclist" id="seclist"></div>
+        <div class="sub">Add a section</div>
+        <div class="addmenu" id="addmenu"></div>
+      </div>
+
+      <!-- ---------------- PHRASES ---------------- -->
+      <div class="pane" data-pane="phrases">
+        <p class="hint" style="margin-bottom:10px">Click into a bullet list on your CV first, then pick a line to drop it in.</p>
+        <div class="row"><select id="phraseCat"></select></div>
+        <div id="phraseList"></div>
+      </div>
+
+      <!-- ---------------- CHECKS ---------------- -->
+      <div class="pane" data-pane="checks">
+        <div id="checkList"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============================ CANVAS ============================ -->
+  <div class="canvas">
+    <div class="topbar">
+      <span class="status" id="status">Saved</span>
+      <span class="flag good" id="pageFlag">1 page</span>
+      <span class="grow"></span>
+      <button class="pill" data-zoom="fit">Fit</button>
+      <button class="pill" data-zoom="0.6">60%</button>
+      <button class="pill on" data-zoom="0.8">80%</button>
+      <button class="pill" data-zoom="1">100%</button>
+    </div>
+    <div class="scroll" id="scroll">
+      <div class="pages" id="pages"></div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="filePhoto" accept="image/*" hidden>
+<input type="file" id="fileOpen" accept="application/json,.cvjson" hidden>
+<div class="iconpop" id="iconpop"></div>
+
+<div class="modal" id="printModal">
+  <div class="box">
+    <h2>Save your CV as a PDF</h2>
+    <div class="note" id="printNote" style="display:none"></div>
+    <ol>
+      <li>Destination: <b>Save as PDF</b></li>
+      <li>Paper size: <b>A4</b></li>
+      <li>Margins: <b>None</b></li>
+      <li>Scale: <b>100%</b> or Default</li>
+    </ol>
+    <div class="foot">
+      <button class="btn" id="printCancel">Cancel</button>
+      <button class="btn primary" id="printGo">Open print window</button>
+    </div>
+  </div>
+</div>

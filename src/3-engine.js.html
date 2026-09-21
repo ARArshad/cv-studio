@@ -1,0 +1,696 @@
+<script>
+(function(){
+"use strict";
+
+/* =====================================================================
+   1. SMALL HELPERS
+   ===================================================================== */
+var $  = function(s, r){ return (r||document).querySelector(s); };
+var $$ = function(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function el(html){ var t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstElementChild; }
+function debounce(fn, ms){ var t; return function(){ var a=arguments,s=this; clearTimeout(t); t=setTimeout(function(){ fn.apply(s,a); }, ms); }; }
+
+/* =====================================================================
+   2. ICONS
+   ===================================================================== */
+var ICONS = {
+  user:'M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.34 0-10 1.67-10 5v3h20v-3c0-3.33-6.66-5-10-5z',
+  mail:'M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z',
+  phone:'M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z',
+  home:'M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z',
+  pin:'M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z',
+  calendar:'M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2zm0 16H5V10h14v10zM7 12h5v5H7v-5z',
+  flag:'M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z',
+  globe:'M12 2a10 10 0 100 20 10 10 0 000-20zm6.93 6h-2.95a15.6 15.6 0 00-1.38-3.56A8.03 8.03 0 0118.93 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14A7.96 7.96 0 014 12c0-.69.1-1.36.26-2h3.38a16.6 16.6 0 000 4H4.26zm.81 2h2.95c.33 1.27.8 2.47 1.38 3.56A8.03 8.03 0 015.07 16zm2.95-8H5.07a8.03 8.03 0 014.33-3.56A15.6 15.6 0 008.02 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66a14.9 14.9 0 010-4h4.68a14.9 14.9 0 010 4zm.26 5.56c.58-1.09 1.05-2.29 1.38-3.56h2.95a8.03 8.03 0 01-4.33 3.56zM16.36 14a16.6 16.6 0 000-4h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z',
+  link:'M3.9 12a5 5 0 015-5h3v1.9h-3a3.1 3.1 0 000 6.2h3V17h-3a5 5 0 01-5-5zm5.1 1v-2h6v2H9zm6-6h-3v1.9h3a3.1 3.1 0 010 6.2h-3V17h3a5 5 0 000-10z',
+  linkedin:'M4.98 3.5A2.5 2.5 0 112.5 6 2.5 2.5 0 014.98 3.5zM3 8.98h4V21H3zM9 8.98h3.8v1.64h.05a4.17 4.17 0 013.75-2.06C20.2 8.56 21 10.8 21 14.02V21h-4v-6.2c0-1.48-.03-3.39-2.07-3.39-2.07 0-2.39 1.62-2.39 3.29V21H9z',
+  briefcase:'M10 4h4a2 2 0 012 2v2h4a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2v-9a2 2 0 012-2h4V6a2 2 0 012-2zm4 4V6h-4v2h4z',
+  car:'M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8a1 1 0 001 1h1a1 1 0 001-1v-1h12v1a1 1 0 001 1h1a1 1 0 001-1v-8l-2.08-5.99zM6.5 16a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm11 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM5 11l1.5-4.5h11L19 11H5z',
+  award:'M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8L12 2zm0 15.5l4 2.1V22l-4-2-4 2v-4.4l4-2.1z',
+  book:'M4 4h6a3 3 0 013 3v13a3 3 0 00-3-2H4V4zm16 0h-6a3 3 0 00-3 3v13a3 3 0 013-2h6V4z',
+  clock:'M12 2a10 10 0 100 20 10 10 0 000-20zm1 10.6l4 2.3-.8 1.4-5-2.9V6h1.8v6.6z',
+  heart:'M12 21s-7.5-4.7-9.3-9A5.4 5.4 0 0112 5.3 5.4 5.4 0 0121.3 12c-1.8 4.3-9.3 9-9.3 9z',
+  tools:'M21.7 18.3l-7.1-7.1a5.5 5.5 0 00-6.9-6.9l3 3-2.1 2.1-3-3a5.5 5.5 0 006.9 6.9l7.1 7.1a1 1 0 001.4 0l.7-.7a1 1 0 000-1.4z',
+  chip:'M9 3h2v2h2V3h2v2h1a3 3 0 013 3v1h2v2h-2v2h2v2h-2v1a3 3 0 01-3 3h-1v2h-2v-2h-2v2H9v-2H8a3 3 0 01-3-3v-1H3v-2h2v-2H3V9h2V8a3 3 0 013-3h1V3zm0 6v6h6V9H9z'
+};
+function iconSvg(name){ return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+(ICONS[name]||ICONS.pin)+'"></path></svg>'; }
+
+/* =====================================================================
+   3. COLOUR SCHEMES AND FONTS
+   ===================================================================== */
+var SCHEMES = [
+  {n:'Royal',    c:{'--brand':'#45608a','--brand-2':'#5d7da8','--brand-3':'#7191b7','--side-bg':'#f4f5f7','--dot-on':'#3c6194','--dot-off':'#d7dade','--ink':'#2e2e2e'}},
+  {n:'Navy',     c:{'--brand':'#1f3b63','--brand-2':'#2f5183','--brand-3':'#4e74a6','--side-bg':'#f2f4f8','--dot-on':'#1f3b63','--dot-off':'#d5dae2','--ink':'#242a33'}},
+  {n:'Ocean',    c:{'--brand':'#0f4c81','--brand-2':'#2168a5','--brand-3':'#4a8cc4','--side-bg':'#f1f5fa','--dot-on':'#2168a5','--dot-off':'#d5dee8','--ink':'#222a33'}},
+  {n:'Teal',     c:{'--brand':'#14596b','--brand-2':'#1f7288','--brand-3':'#3f93a9','--side-bg':'#f0f6f8','--dot-on':'#1f7288','--dot-off':'#d4dfe3','--ink':'#232c30'}},
+  {n:'Emerald',  c:{'--brand':'#1f5f4b','--brand-2':'#2f7a62','--brand-3':'#4f9c83','--side-bg':'#f1f7f4','--dot-on':'#2f7a62','--dot-off':'#d6e2dd','--ink':'#26302c'}},
+  {n:'Forest',   c:{'--brand':'#2f4a34','--brand-2':'#436a4a','--brand-3':'#6a8f71','--side-bg':'#f3f6f3','--dot-on':'#436a4a','--dot-off':'#d8dfd9','--ink':'#282d29'}},
+  {n:'Burgundy', c:{'--brand':'#6f2630','--brand-2':'#8b3c46','--brand-3':'#ab626b','--side-bg':'#faf3f4','--dot-on':'#8b3c46','--dot-off':'#e2d6d8','--ink':'#2f2628'}},
+  {n:'Rose',     c:{'--brand':'#8a4a5e','--brand-2':'#a86179','--brand-3':'#c2879b','--side-bg':'#fbf4f6','--dot-on':'#a86179','--dot-off':'#e6d9de','--ink':'#2f272a'}},
+  {n:'Plum',     c:{'--brand':'#4b3a72','--brand-2':'#64508f','--brand-3':'#8271ab','--side-bg':'#f6f4fa','--dot-on':'#64508f','--dot-off':'#dcd8e4','--ink':'#2b2733'}},
+  {n:'Bronze',   c:{'--brand':'#6f5326','--brand-2':'#8d6d3a','--brand-3':'#ab8d5e','--side-bg':'#faf6ef','--dot-on':'#8d6d3a','--dot-off':'#e2dbcd','--ink':'#2f2a22'}},
+  {n:'Charcoal', c:{'--brand':'#3a3f47','--brand-2':'#4d545e','--brand-3':'#6b727d','--side-bg':'#f4f5f6','--dot-on':'#4d545e','--dot-off':'#d8dadd','--ink':'#2b2e33'}},
+  {n:'Slate',    c:{'--brand':'#23262b','--brand-2':'#3b4048','--brand-3':'#5d636d','--side-bg':'#f5f5f6','--dot-on':'#3b4048','--dot-off':'#d9dadd','--ink':'#26292e'}}
+];
+var FONTS = [
+  ['Helvetica, Arial',  '"Helvetica Neue", Helvetica, Arial, sans-serif'],
+  ['Verdana',           'Verdana, Geneva, sans-serif'],
+  ['Tahoma',            'Tahoma, Geneva, sans-serif'],
+  ['Trebuchet MS',      '"Trebuchet MS", Tahoma, sans-serif'],
+  ['Gill Sans',         '"Gill Sans", "Gill Sans MT", Calibri, sans-serif'],
+  ['Optima',            'Optima, Candara, "Segoe UI", sans-serif'],
+  ['Futura',            'Futura, "Century Gothic", AppleGothic, sans-serif'],
+  ['Georgia',           'Georgia, "Times New Roman", serif'],
+  ['Times New Roman',   '"Times New Roman", Times, serif'],
+  ['Palatino',          'Palatino, "Palatino Linotype", Georgia, serif'],
+  ['Baskerville',       'Baskerville, Georgia, serif'],
+  ['Courier',           '"Courier New", Courier, monospace']
+];
+
+/* =====================================================================
+   4. TEMPLATES
+   Each one says where the name, photo and contact details live, and
+   draws its own artwork. Artwork is SVG on a 100 by 1000 grid that is
+   stretched to the page, so it prints with or without background
+   graphics and follows the sidebar width.
+   ===================================================================== */
+function rect(cls,x,y,w,h){ return '<rect class="'+cls+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'"></rect>'; }
+
+var TPL = {
+  classic: {
+    name:'Classic', banner:false, side:true, sideOn:'left',
+    ident:'side', identAlign:'center', photo:'side', photoFirst:false,
+    details:'side', detailsRow:false, brandBanner:false, brandSide:false,
+    art:function(sw, p){
+      var s = rect('a-side',0,0,sw,1000);
+      if(p===0){
+        s += '<path class="a-brand" d="M0,0 H'+sw+' V117 Q'+(sw/2)+',150 0,117 Z"></path>';
+        s += '<path class="a-brand" d="M0,1000 V957 Q'+(sw/2)+',914 '+sw+',957 V1000 Z"></path>';
+      }
+      return s;
+    }
+  },
+  modern: {
+    name:'Modern', banner:false, side:true, sideOn:'left',
+    ident:'side', identAlign:'center', photo:'side', photoFirst:true,
+    details:'side', detailsRow:false, brandBanner:false, brandSide:true,
+    art:function(sw){ return rect('a-brand',0,0,sw,1000); }
+  },
+  executive: {
+    name:'Executive', banner:true, side:false,
+    ident:'banner', identAlign:'left', photo:'banner', photoFirst:true,
+    details:'banner', detailsRow:true, brandBanner:true, brandSide:false,
+    art:function(sw,p,bh){ return p===0 ? rect('a-brand',0,0,100,bh) : ''; }
+  },
+  professional: {
+    name:'Professional', banner:true, side:false,
+    ident:'banner', identAlign:'left', photo:'banner', photoFirst:false,
+    details:'banner', detailsRow:false, brandBanner:false, brandSide:false,
+    art:function(sw,p,bh){ return p===0 ? rect('a-brand',0,bh-2,100,2) : ''; }
+  },
+  minimalist: {
+    name:'Minimalist', banner:true, side:false,
+    ident:'banner', identAlign:'center', photo:'banner', photoFirst:true,
+    details:'banner', detailsRow:true, brandBanner:false, brandSide:false,
+    art:function(){ return ''; }
+  },
+  creative: {
+    name:'Creative', banner:false, side:true, sideOn:'right',
+    ident:'side', identAlign:'center', photo:'side', photoFirst:true,
+    details:'side', detailsRow:false, brandBanner:false, brandSide:false,
+    art:function(sw,p){
+      var x = 100-sw;
+      return rect('a-side',x,0,sw,1000) + (p===0 ? rect('a-brand',x,0,sw,150) : '');
+    }
+  },
+  timeline: {
+    name:'Timeline', banner:true, side:false,
+    ident:'banner', identAlign:'left', photo:'banner', photoFirst:false,
+    details:'banner', detailsRow:true, brandBanner:false, brandSide:false,
+    art:function(sw,p,bh){ return p===0 ? rect('a-brand',0,bh-2,100,2) : ''; }
+  },
+  compact: {
+    name:'Compact', banner:true, side:true, sideOn:'left',
+    ident:'banner', identAlign:'left', photo:'banner', photoFirst:true,
+    details:'banner', detailsRow:true, brandBanner:false, brandSide:false,
+    art:function(sw,p,bh){ return p===0 ? rect('a-brand',0,bh-2,100,2) : ''; }
+  },
+  elegant: {
+    name:'Elegant', banner:true, side:false,
+    ident:'banner', identAlign:'center', photo:'banner', photoFirst:true,
+    details:'banner', detailsRow:true, brandBanner:false, brandSide:false,
+    art:function(sw,p,bh){ return p===0 ? rect('a-line',0,bh-1,100,1) : ''; }
+  },
+  bold: {
+    name:'Bold', banner:true, side:true, sideOn:'left',
+    ident:'banner', identAlign:'left', photo:'banner', photoFirst:false,
+    details:'banner', detailsRow:true, brandBanner:true, brandSide:false,
+    art:function(sw,p,bh){
+      if(p===0) return rect('a-brand',0,0,100,bh) + rect('a-side',0,bh,sw,1000-bh);
+      return rect('a-side',0,0,sw,1000);
+    }
+  }
+};
+var TPL_ORDER = ['classic','modern','executive','professional','minimalist','creative','timeline','compact','elegant','bold'];
+
+/* little preview drawings for the template gallery */
+function miniSvg(id){
+  var t = TPL[id], w=120, h=96, b='#45608a', s='#e7eaf0', l='#c9cfda', d='#9aa4b4';
+  var out = '<svg class="mini" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none"><rect width="'+w+'" height="'+h+'" fill="#fff"/>';
+  var bh = t.banner ? (id==='bold'?30:id==='executive'?26:18) : 0;
+  var sw = t.side ? (id==='compact'?52:40) : 0;
+  var sx = t.sideOn==='right' ? w-sw : 0;
+  if(t.side) out += '<rect x="'+sx+'" y="'+(id==='bold'?bh:0)+'" width="'+sw+'" height="'+(h-(id==='bold'?bh:0))+'" fill="'+(t.brandSide?b:s)+'"/>';
+  if(id==='classic'){ out += '<path d="M0,0 H'+sw+' V22 Q'+(sw/2)+',30 0,22 Z" fill="'+b+'"/><path d="M0,'+h+' V'+(h-10)+' Q'+(sw/2)+',' +(h-18)+' '+sw+','+(h-10)+' V'+h+' Z" fill="'+b+'"/>'; }
+  if(id==='creative'){ out += '<rect x="'+sx+'" y="0" width="'+sw+'" height="26" fill="'+b+'"/>'; }
+  if(t.banner) out += '<rect x="0" y="0" width="'+w+'" height="'+bh+'" fill="'+(t.brandBanner?b:'#fff')+'"/>';
+  if(t.banner && !t.brandBanner) out += '<rect x="8" y="'+(bh-3)+'" width="'+(w-16)+'" height="2" fill="'+b+'"/>';
+  /* name bar */
+  var nx = t.ident==='side' ? sx+6 : 8, nw = t.ident==='side' ? sw-12 : 46;
+  if(t.identAlign==='center' && t.ident!=='side') nx = (w-nw)/2;
+  out += '<rect x="'+nx+'" y="'+(t.ident==='side'?8:5)+'" width="'+nw+'" height="6" fill="'+(t.brandBanner||t.brandSide?'#ffffff':b)+'"/>';
+  /* body lines */
+  var mx = (t.side && t.sideOn==='left') ? sw+7 : 7, mw = w - sw - 14;
+  var y = bh + (t.banner?8:10);
+  for(var i=0;i<6;i++){
+    out += '<rect x="'+mx+'" y="'+y+'" width="'+(i%3===0?mw*0.5:mw)+'" height="'+(i%3===0?4:2.5)+'" fill="'+(i%3===0?b:l)+'"/>';
+    y += i%3===0 ? 9 : 6;
+    if(y > h-8) break;
+  }
+  /* sidebar lines */
+  if(t.side){
+    var yy = (id==='classic'? 40 : id==='bold'? bh+8 : 34);
+    for(var j=0;j<5;j++){
+      out += '<rect x="'+(sx+6)+'" y="'+yy+'" width="'+(sw-14)+'" height="2.5" fill="'+(t.brandSide?'rgba(255,255,255,.75)':d)+'"/>';
+      yy += 7; if(yy>h-8) break;
+    }
+  }
+  return out + '</svg>';
+}
+
+/* =====================================================================
+   5. READY MADE PHRASES
+   ===================================================================== */
+var PHRASES = {
+  'Profile openers':[
+    'Hardworking and reliable professional with [x] years of hands on experience in [industry].',
+    'Practical and safety conscious worker with a strong record of finishing jobs on time.',
+    'Motivated team player who learns quickly and takes pride in doing a job properly.',
+    'Experienced tradesperson used to busy sites, tight deadlines and changing priorities.',
+    'Friendly and dependable, with a calm approach to problems and a focus on quality.'
+  ],
+  'Construction and site':[
+    'Carried out daily site tasks safely and to the standard set by the supervisor.',
+    'Prepared work areas, materials and tools before the start of each shift.',
+    'Assisted skilled trades with fitting, fixing, levelling and finishing work.',
+    'Read simple drawings and marked out work before starting.',
+    'Kept the site tidy and free of hazards throughout the day.',
+    'Worked at height using scaffolding and towers after the correct checks.',
+    'Followed method statements and risk assessments on every task.',
+    'Loaded, moved and stored materials without damage or delay.'
+  ],
+  'Electrical':[
+    'Installed conduit, trunking, cable tray and containment to the drawings.',
+    'Pulled and terminated cables for lighting, power and small machinery.',
+    'Fitted sockets, switches, light fittings and distribution boards.',
+    'Traced and repaired faults on lighting and power circuits.',
+    'Tested circuits before energising and recorded the results.',
+    'Isolated and locked off supplies before starting any work.',
+    'Worked to wiring regulations and site safety rules at all times.'
+  ],
+  'Drone and agriculture':[
+    'Operated an agricultural drone for spraying fertiliser and crop protection products.',
+    'Planned flight paths and set spray rates to suit the field and the crop.',
+    'Carried out pre flight checks on batteries, propellers, nozzles and tanks.',
+    'Mixed and loaded spraying solutions to the correct measurements.',
+    'Kept clear of people, livestock, buildings and waterways while spraying.',
+    'Cleaned, flushed and stored equipment after every job.',
+    'Kept records of areas covered, products used and weather conditions.'
+  ],
+  'Driving and warehouse':[
+    'Loaded, secured and delivered goods on time and in good condition.',
+    'Carried out daily vehicle checks and reported any defects straight away.',
+    'Picked, packed and labelled orders accurately against the paperwork.',
+    'Operated a forklift and pallet truck safely in a busy warehouse.',
+    'Kept stock tidy, rotated and easy to find.',
+    'Planned routes to keep to delivery windows and save fuel.'
+  ],
+  'Customer service and retail':[
+    'Served customers politely and dealt with questions and complaints calmly.',
+    'Handled cash, card payments and end of day balancing accurately.',
+    'Kept displays stocked, priced and looking their best.',
+    'Helped new starters settle in and learn the daily routine.',
+    'Met and beat sales targets over several months running.'
+  ],
+  'Maintenance and technical':[
+    'Carried out planned maintenance and kept clear records of every visit.',
+    'Diagnosed faults quickly and repaired them with the minimum of downtime.',
+    'Serviced tools, plant and machinery to the maker’s schedule.',
+    'Responded to breakdown calls and got equipment running again.',
+    'Ordered parts and kept a small stock of the items used most.'
+  ],
+  'Teamwork and strengths':[
+    'Worked well as part of a small team and helped others when they were under pressure.',
+    'Trained and guided new workers on tools, tasks and safety.',
+    'Kept a clear head under pressure and finished the job to time.',
+    'Communicated clearly with supervisors, clients and colleagues.',
+    'Took on extra shifts and duties whenever they were needed.'
+  ]
+};
+
+/* =====================================================================
+   6. THE STARTING DOCUMENT
+   ===================================================================== */
+function starterDoc(){
+  /* The CV the app opens with. Nobody real: the email is on the reserved
+     example.com domain and the number is inside the 07700 900000 block that
+     Ofcom keeps aside for fiction, so neither can reach a person. */
+  return {
+    v:2,
+    profile:{
+      name:'Jordan Blake',
+      role:'Site Electrician and Drone Operator',
+      photo:'data:image/jpeg;base64,__PHOTO_B64__',
+      details:[
+        {icon:'mail',     text:'jordan.blake@example.com'},
+        {icon:'phone',    text:'+44 7700 900123'},
+        {icon:'pin',      text:'Manchester, United Kingdom'},
+        {icon:'calendar', text:'4 March 1994'},
+        {icon:'flag',     text:'British'},
+        {icon:'car',      text:'Full UK driving licence'}
+      ]
+    },
+    sections:[
+      { id:'sec_profile', type:'text', title:'Profile', col:'main', show:true,
+        body:'Reliable site electrician with <b>seven years on commercial fit outs</b>, refurbishments and small industrial units. Recently qualified as an <b>agricultural drone operator</b>, covering survey flights and spraying. Known for turning up prepared, keeping a tidy job and finishing on time.' },
+
+      { id:'sec_emp', type:'entries', title:'Employment', col:'main', show:true, items:[
+        { title:'Site Electrician', sub:'Rowland Building Services, Manchester', date:'2019 to present', pts:[
+          'Installed conduit, trunking and containment on commercial fit outs of up to forty units.',
+          'Pulled and terminated cables for lighting, power and small machinery.',
+          'Tested circuits before energising and recorded the results for the handover pack.',
+          'Traced and repaired faults on lighting and power circuits, often on occupied sites.',
+          'Worked to the wiring regulations and site safety rules on every job.',
+          'Brought two apprentices through their first year on the tools.'
+        ]},
+        { title:'Maintenance Electrician', sub:'Halewood Facilities, Leeds', date:'2016 to 2019', pts:[
+          'Carried out planned maintenance across six sites and kept clear records of every visit.',
+          'Answered breakdown calls and got equipment running again with the minimum of downtime.',
+          'Serviced tools, plant and machinery to the schedule set by the maker.',
+          'Fitted sockets, switches, light fittings and distribution boards.',
+          'Ordered parts and kept a small van stock of the items used most.'
+        ]}
+      ]},
+
+      { id:'sec_edu', type:'entries', title:'Education', col:'main', show:true, items:[
+        { title:'Level 3 Diploma in Electrical Installation', sub:'Manchester College', date:'2012 to 2014', pts:[
+          'Completed the full route from first fix through to inspection and testing.',
+          'Studied <b>wiring regulations, cable calculations and fault finding</b> alongside site work.'
+        ]}
+      ]},
+
+      { id:'sec_ach', type:'bullets', title:'Achievements', col:'main', show:true, items:[
+        'Passed the eighteenth edition wiring regulations first time, alongside full time work.',
+        'Completed a two month agricultural drone course covering flight control, spraying and safety.',
+        'Cut callout times on the maintenance round by planning van stock around the six sites.',
+        'Kept a clean safety record across seven years on commercial and occupied sites.'
+      ]},
+
+      { id:'sec_skills', type:'skills', title:'Skills', col:'side', show:true, items:[
+        {name:'Electrical Installation and Wiring', level:0},
+        {name:'Inspection and Testing', level:0},
+        {name:'Fault Finding and Repair', level:0},
+        {name:'Containment and First Fix', level:0},
+        {name:'Drone Operation and Spraying', level:0},
+        {name:'Planned Maintenance', level:0},
+        {name:'Working at Height', level:0},
+        {name:'Teamwork and Handover', level:0}
+      ]},
+
+      { id:'sec_lang', type:'languages', title:'Languages', col:'side', show:true, items:[
+        {name:'English', level:5},
+        {name:'Spanish', level:3},
+        {name:'Polish', level:2}
+      ]}
+    ],
+    design:{
+      template:'classic', scheme:0, vars:{},
+      skillStyle:'dots', dateStyle:'right', icons:'1',
+      photoShape:'50%', showPhoto:true, zoom:0.8
+    }
+  };
+}
+
+/* =====================================================================
+   7. STATE
+   ===================================================================== */
+var KEY = 'cv-studio-v2';
+var DOC = starterDoc();
+var pagesEl = $('#pages');
+var focusPath = null;
+var undoStack = [], redoStack = [];
+
+function sec(id){ for(var i=0;i<DOC.sections.length;i++) if(DOC.sections[i].id===id) return DOC.sections[i]; return null; }
+function secIndex(id){ for(var i=0;i<DOC.sections.length;i++) if(DOC.sections[i].id===id) return i; return -1; }
+
+/* read and write a value by the short paths used in data-p */
+function setVal(path, value){
+  var a = path.split('.');
+  if(a[0]==='p'){ DOC.profile[a[1]] = value; return; }
+  if(a[0]==='d'){ DOC.profile.details[+a[1]].text = value; return; }
+  if(a[0]==='s'){
+    var s = sec(a[1]); if(!s) return;
+    if(a[2]==='title'){ s.title = value; return; }
+    if(a[2]==='body'){ s.body = value; return; }
+    if(a[2]==='items'){
+      var i = +a[3];
+      if(a.length===4){ s.items[i] = value; return; }              /* bullets list */
+      if(a[4]==='pts'){ s.items[i].pts[+a[5]] = value; return; }   /* entry bullet */
+      s.items[i][a[4]] = value; return;                            /* title, sub, date, name */
+    }
+  }
+}
+
+/* =====================================================================
+   8. RENDERING
+   ===================================================================== */
+function ed(path, cls, ph, rich, val){
+  return '<'+(rich?'div':'span')+' class="'+cls+'" contenteditable data-p="'+path+'"'
+       + (rich?' data-rich="1"':'') + ' data-ph="'+esc(ph)+'">' + (val==null?'':val) + '</'+(rich?'div':'span')+'>';
+}
+var X_LEFT  = '<button class="ui xbtn left" data-act="%A%" %D% title="Remove">&times;</button>';
+var X_RIGHT = '<button class="ui xbtn right" data-act="%A%" %D% title="Remove">&times;</button>';
+function xbtn(tpl, act, data){ return tpl.replace('%A%', act).replace('%D%', data); }
+function addBtn(act, data, label, where){
+  return '<button class="ui addbtn '+(where||'bl')+'" data-act="'+act+'" '+data+'>'+label+'</button>';
+}
+
+function identityHtml(where){
+  var T = TPL[DOC.design.template], P = DOC.profile, d = DOC.design;
+  var onBrand = (where==='banner' && T.brandBanner) || (where==='side' && (T.brandSide || DOC.design.template==='classic'));
+  var photo = '';
+  if(d.showPhoto && P.photo){
+    photo = '<div class="photo-wrap'+(T.brandSide?' plain':'')+'">'
+          + '<img id="photoImg" src="'+P.photo+'" alt="">'
+          + '<div class="photo-edit ui"><span>Drag to move, click to change</span></div></div>';
+  }
+  var who = '<div class="ident '+(T.identAlign==='left'?'left':'')+(onBrand?' on-brand':'')+'">'
+          + ed('p.name','nm','Your name',false,P.name)
+          + ed('p.role','role','Job title you are going for',false,P.role)
+          + '</div>';
+  return { photo:photo, who:who, onBrand:onBrand };
+}
+
+function detailsHtml(row){
+  var out = '<div class="details'+(row?' row':'')+' hov">';
+  DOC.profile.details.forEach(function(d,i){
+    out += '<div class="detail">'
+        +  '<span class="ic" data-act="icon" data-i="'+i+'">'+iconSvg(d.icon)+'</span>'
+        +  ed('d.'+i+'.text','','Detail',false,d.text)
+        +  xbtn(X_LEFT,'del-detail','data-i="'+i+'"')
+        +  '</div>';
+  });
+  out += addBtn('add-detail','','+ Add detail','bl');
+  return out + '</div>';
+}
+
+function levelMarks(sid, i, level, style){
+  if(style==='bars') return '<div class="bar"><i style="right:'+(100-level*20)+'%"></i></div>';
+  if(style==='plain' || !level) return '';
+  var out = '<span class="dots">';
+  for(var k=1;k<=5;k++) out += '<button class="dot'+(k<=level?' on':'')+'" data-act="level" data-sid="'+sid+'" data-i="'+i+'" data-l="'+k+'"></button>';
+  return out + '</span>';
+}
+
+/* one section becomes one or more blocks so it can break across pages */
+function sectionBlocks(s){
+  var d = DOC.design, out = [], head = '<div class="h-sec">'+ed('s.'+s.id+'.title','','Section title',false,s.title)+'</div>';
+  var tools = '<button class="ui xbtn right" data-act="del-sec" data-sid="'+s.id+'" title="Remove section">&times;</button>';
+
+  function wrap(html, last){ return '<div class="blk'+(last?'':' tight')+'" data-sid="'+s.id+'">'+html+'</div>'; }
+
+  if(s.type==='text'){
+    out.push(wrap(tools+head+ed('s.'+s.id+'.body','body-text','Write a short profile',true,s.body), true));
+    return out;
+  }
+
+  if(s.type==='entries'){
+    var items = s.items.length ? s.items : [{title:'',sub:'',date:'',pts:['']}];
+    items.forEach(function(it,i){
+      var dateHtml = d.dateStyle==='hidden' ? '' : ed('s.'+s.id+'.items.'+i+'.date','ed','Dates',false,it.date);
+      var titleRow = d.dateStyle==='right'
+        ? '<div class="head-row">'+ed('s.'+s.id+'.items.'+i+'.title','et','Job title',false,it.title)+dateHtml+'</div>'
+        : ed('s.'+s.id+'.items.'+i+'.title','et','Job title',false,it.title);
+      var subRow = ed('s.'+s.id+'.items.'+i+'.sub','es','Company and place',false,it.sub)
+                 + (d.dateStyle==='under' ? '<div>'+dateHtml+'</div>' : '');
+      var pts = '<ul class="pts hov">';
+      (it.pts||[]).forEach(function(p,j){
+        pts += '<li>'+ed('s.'+s.id+'.items.'+i+'.pts.'+j,'','What you did',false,p)
+            +  xbtn(X_RIGHT,'del-pt','data-sid="'+s.id+'" data-i="'+i+'" data-j="'+j+'"')+'</li>';
+      });
+      pts += addBtn('add-pt','data-sid="'+s.id+'" data-i="'+i+'"','+ Add bullet','bl') + '</ul>';
+      var entry = '<div class="entry">'
+                + xbtn(X_RIGHT,'del-entry','data-sid="'+s.id+'" data-i="'+i+'"')
+                + titleRow + subRow + pts + '</div>';
+      var last = (i === items.length-1);
+      var body = (i===0 ? tools+head : '') + entry
+               + (last ? addBtn('add-entry','data-sid="'+s.id+'"','+ Add entry','br') : '');
+      out.push('<div class="blk'+(last?'':' tight')+' hov" data-sid="'+s.id+'">'+body+'</div>');
+    });
+    return out;
+  }
+
+  if(s.type==='bullets'){
+    var lis = '<ul class="pts hov">';
+    (s.items.length?s.items:['']).forEach(function(p,i){
+      lis += '<li>'+ed('s.'+s.id+'.items.'+i,'','Line',false,p)
+          +  xbtn(X_RIGHT,'del-row','data-sid="'+s.id+'" data-i="'+i+'"')+'</li>';
+    });
+    lis += addBtn('add-row','data-sid="'+s.id+'"','+ Add line','bl') + '</ul>';
+    out.push(wrap(tools+head+lis, true));
+    return out;
+  }
+
+  /* skills and languages */
+  var style = (s.type==='languages') ? (d.skillStyle==='tags'?'dots':d.skillStyle) : d.skillStyle;
+  var body;
+  if(style==='tags'){
+    body = '<div class="tags hov">';
+    s.items.forEach(function(it,i){
+      body += '<span class="tag rowitem">'+ed('s.'+s.id+'.items.'+i+'.name','','Skill',false,it.name)
+           +  xbtn(X_RIGHT,'del-row','data-sid="'+s.id+'" data-i="'+i+'"')+'</span>';
+    });
+    body += addBtn('add-row','data-sid="'+s.id+'"','+ Add','bl')+'</div>';
+  }else{
+    body = '<div class="rowlist hov">';
+    s.items.forEach(function(it,i){
+      var marks = levelMarks(s.id, i, it.level|0, style);
+      body += '<div class="rowitem">'
+           +  '<div class="rl">'+ed('s.'+s.id+'.items.'+i+'.name','','Name',false,it.name)
+           +  (style==='bars'?'':marks)+'</div>'
+           +  (style==='bars'?marks:'')
+           +  xbtn(X_LEFT,'del-row','data-sid="'+s.id+'" data-i="'+i+'"')
+           +  '</div>';
+    });
+    body += addBtn('add-row','data-sid="'+s.id+'"','+ Add','bl')+'</div>';
+  }
+  out.push(wrap(tools+head+body, true));
+  return out;
+}
+
+function newPage(index){
+  var T = TPL[DOC.design.template], d = DOC.design;
+  var struct = T.side ? 'sidebar' : (T.banner ? 'header' : 'single');
+  var p = el('<div class="page" data-tpl="'+d.template+'" data-side="'+(T.sideOn||'left')+'" data-struct="'+struct+'" data-noicons="'+(d.icons==='1'?0:1)+'">'
+    + '<svg class="art" viewBox="0 0 100 1000" preserveAspectRatio="none" aria-hidden="true"></svg>'
+    + '<div class="sheet">'
+    + '<div class="cols">'
+    + (T.side ? '<aside class="col side"></aside>' : '')
+    + '<main class="col main"></main>'
+    + '</div></div></div>');
+  pagesEl.appendChild(p);
+  return p;
+}
+
+function bannerHtml(){
+  var T = TPL[DOC.design.template];
+  if(!T.banner) return '';
+  var id = identityHtml('banner');
+  var det = detailsHtml(T.detailsRow);
+  var who = '<div class="who">'+id.who+(T.details==='banner'?det:'')+'</div>';
+  var inner = T.photoFirst ? id.photo+who : who+id.photo;
+  return '<header class="banner'+(T.brandBanner?' on-brand':'')+'">'+inner+'</header>';
+}
+
+function render(){
+  normalise();
+  var T = TPL[DOC.design.template], d = DOC.design;
+  pagesEl.innerHTML = '';
+  var page = newPage(0);
+
+  /* banner */
+  if(T.banner){
+    var sheet = page.querySelector('.sheet');
+    sheet.insertBefore(el(bannerHtml()), sheet.firstChild);
+  }
+
+  var sideCol = page.querySelector('.col.side'), mainCol = page.querySelector('.col.main');
+
+  /* identity and details when they live in the sidebar */
+  if(!T.banner){
+    var idt = identityHtml('side');
+    var host = sideCol || mainCol;
+    var identBlk = '<div class="blk ident-blk">' + (T.photoFirst ? idt.photo+idt.who : idt.who+idt.photo) + '</div>';
+    host.insertAdjacentHTML('beforeend', identBlk);
+    host.insertAdjacentHTML('beforeend', '<div class="blk">'+detailsHtml(false)+'</div>');
+  }
+
+  /* sections */
+  DOC.sections.forEach(function(s){
+    if(s.show===false) return;
+    var host = (T.side && s.col==='side') ? sideCol : mainCol;
+    if(!host) host = mainCol;
+    sectionBlocks(s).forEach(function(h){ host.insertAdjacentHTML('beforeend', h); });
+  });
+
+  /* add section button lives at the end of the main column */
+  mainCol.insertAdjacentHTML('beforeend',
+    '<div class="blk" style="margin-top:6px"><button class="ui addbtn bl" data-act="add-sec" style="position:relative;opacity:1;left:0;bottom:0">+ Add section</button></div>');
+
+  applyDesign();
+  paginate();
+  syncArt();
+  if(focusPath){ focusByPath(focusPath); focusPath = null; }
+  updatePageFlag();
+}
+
+/* make sure the document always has the shape the renderer expects */
+function normalise(){
+  var P = DOC.profile;
+  P.details = P.details || [];
+  DOC.sections.forEach(function(s){
+    if(s.type === 'text'){ if(typeof s.body !== 'string') s.body = ''; return; }
+    if(!Array.isArray(s.items)) s.items = [];
+    if(s.type === 'entries'){
+      if(!s.items.length) s.items.push({title:'',sub:'',date:'',pts:['']});
+      s.items.forEach(function(it){ if(!Array.isArray(it.pts) || !it.pts.length) it.pts = ['']; });
+    }else if(s.type === 'bullets'){
+      if(!s.items.length) s.items.push('');
+    }else{
+      if(!s.items.length) s.items.push({name:'', level:(s.type==='languages'?3:0)});
+    }
+  });
+}
+
+/* pull everything back onto page one, then let it overflow again */
+function reflow(){
+  var pages = $$('.page', pagesEl);
+  if(!pages.length) return;
+  ['side','main'].forEach(function(name){
+    var target = pages[0].querySelector('.col.'+name);
+    if(!target) return;
+    for(var i=1;i<pages.length;i++){
+      var c = pages[i].querySelector('.col.'+name);
+      if(!c) continue;
+      while(c.firstElementChild) target.appendChild(c.firstElementChild);
+    }
+  });
+  for(var j=pages.length-1;j>0;j--) pages[j].remove();
+  /* put any carried over bullets back with the job they came from */
+  $$('.blk[data-cont]', pages[0]).forEach(function(c){
+    var prev = c.previousElementSibling, ul = prev && prev.querySelector('ul.pts');
+    if(ul){
+      var addb = ul.querySelector('.addbtn');
+      $$(':scope > li', c.querySelector('ul.pts')).forEach(function(li){
+        addb ? ul.insertBefore(li, addb) : ul.appendChild(li);
+      });
+    }
+    c.remove();
+  });
+  paginate();
+}
+
+/* when one job is too tall for what is left, carry its last bullets over
+   rather than pushing the whole job to the next page and leaving a gap */
+function carryBullets(col, i, name, blk){
+  var ul = blk.querySelector('ul.pts');
+  if(!ul) return false;
+  var lis = $$(':scope > li', ul);
+  if(lis.length <= 1) return false;
+  var next = pagesEl.children[i+1] || newPage(i+1);
+  var target = next.querySelector('.col.'+name) || next.querySelector('.col.main');
+  var sid = blk.getAttribute('data-sid') || '';
+  var cont = target.firstElementChild;
+  if(!cont || cont.getAttribute('data-cont') !== sid){
+    cont = el('<div class="blk tight" data-cont="'+sid+'"><ul class="pts"></ul></div>');
+    target.insertBefore(cont, target.firstChild);
+  }
+  var cul = cont.querySelector('ul.pts');
+  cul.insertBefore(lis[lis.length-1], cul.firstChild);
+  return true;
+}
+
+/* move overflowing blocks onto the next page until everything fits */
+function paginate(){
+  var guard = 0;
+  for(var i=0;i<pagesEl.children.length && guard<500;i++){
+    var pg = pagesEl.children[i];
+    ['side','main'].forEach(function(name){
+      var col = pg.querySelector('.col.'+name);
+      if(!col) return;
+      while(col.scrollHeight > col.clientHeight + 1 && col.children.length > 0 && guard++ < 500){
+        var last = col.lastElementChild;
+        /* how much room is left once this block is taken out of the column */
+        var free = col.clientHeight - (col.scrollHeight - last.offsetHeight);
+        if(col.children.length === 1 || free > 110){
+          if(carryBullets(col, i, name, last)) continue;
+          if(col.children.length === 1) break;
+        }
+        var next = pagesEl.children[i+1] || newPage(i+1);
+        var target = next.querySelector('.col.'+name) || next.querySelector('.col.main');
+        /* if some of its bullets were carried over already, take them back first */
+        var c = target.firstElementChild;
+        if(c && c.getAttribute('data-cont') && c.getAttribute('data-cont') === last.getAttribute('data-sid')){
+          var ul = last.querySelector('ul.pts'), addb = ul && ul.querySelector('.addbtn');
+          if(ul) $$(':scope > li', c.querySelector('ul.pts')).forEach(function(li){ addb ? ul.insertBefore(li, addb) : ul.appendChild(li); });
+          c.remove();
+        }
+        target.insertBefore(last, target.firstChild);
+      }
+    });
+  }
+  /* remove pages that ended up empty */
+  for(var j=pagesEl.children.length-1;j>0;j--){
+    var p = pagesEl.children[j], used = false;
+    $$('.col', p).forEach(function(c){ if(c.children.length) used = true; });
+    if(!used) p.remove();
+  }
+  /* artwork for every page */
+  syncArt();
+}
+
+/* the artwork follows the sidebar width and the real banner height */
+function syncArt(){
+  var T = TPL[DOC.design.template];
+  var first = pagesEl.querySelector('.page');
+  if(!first) return;
+  var sw = parseFloat(getComputedStyle(first).getPropertyValue('--side-w')) || 33.4;
+  $$('.page', pagesEl).forEach(function(p, idx){
+    var banner = p.querySelector('.banner');
+    var bh = banner ? (banner.offsetHeight / 1122.5 * 1000) : 0;
+    p.querySelector('.art').innerHTML = T.art(sw, idx, bh);
+  });
+}
+
+function applyDesign(){
+  var d = DOC.design;
+  var css = SCHEMES[d.scheme] ? SCHEMES[d.scheme].c : SCHEMES[0].c;
+  $$('.page', pagesEl).forEach(function(p){
+    Object.keys(css).forEach(function(k){ p.style.setProperty(k, css[k]); });
+    Object.keys(d.vars).forEach(function(k){ p.style.setProperty(k, d.vars[k]); });
+    p.style.setProperty('--photo-radius', d.photoShape);
+  });
+}
