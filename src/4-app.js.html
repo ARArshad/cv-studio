@@ -619,13 +619,15 @@ document.addEventListener('keydown', function(e){
 });
 
 function save(){
+  if(!CUR) return;
   $('#status').textContent = 'Saving';
   try{
-    localStorage.setItem(KEY, JSON.stringify(DOC));
+    LIB.writeDoc(CUR, DOC);
     $('#status').textContent = 'Saved';
   }catch(err){
-    $('#status').textContent = 'Could not save, the photo may be very large';
+    $('#status').textContent = 'Could not save, the browser may be full or the photo very large';
   }
+  thumbSoon();
 }
 function download(name, text, type){
   var blob = new Blob([text], {type:type||'text/plain'});
@@ -715,9 +717,10 @@ $('#btnWord').addEventListener('click', function(){
 
 /* reset */
 $('#btnReset').addEventListener('click', function(){
-  if(!confirm('Start again from the original CV? Everything you have changed will be lost.')) return;
-  localStorage.removeItem(KEY);
-  location.reload();
+  if(!confirm('Reset this CV to the example? Everything you have changed in it will be lost. Your other CVs are not touched.')) return;
+  pushUndo();
+  DOC = starterDoc();
+  render(); syncInputs(); buildSectionList(); markScheme(); markTemplate(); save(); runChecks();
 });
 
 /* print */
@@ -768,28 +771,3 @@ function toHex(c){
   return '#' + [1,2,3].map(function(i){ return ('0'+parseInt(m[i],10).toString(16)).slice(-2); }).join('');
 }
 
-/* =====================================================================
-   17. START
-   ===================================================================== */
-var saved = null;
-try{ saved = JSON.parse(localStorage.getItem(KEY)); }catch(e){ saved = null; }
-if(saved && saved.sections && saved.profile){
-  DOC = saved;
-  DOC.design = DOC.design || starterDoc().design;
-  DOC.design.vars = DOC.design.vars || {};
-}
-render();
-buildSectionList();
-buildPhrases();
-markScheme();
-markTemplate();
-syncInputs();
-refreshUndo();
-runChecks();
-setZoom(DOC.design.zoom || .8);
-window.addEventListener('resize', debounce(function(){ updatePageFlag(); }, 250));
-
-})();
-</script>
-</body>
-</html>

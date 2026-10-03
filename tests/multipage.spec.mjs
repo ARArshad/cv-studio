@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const APP = pathToFileURL(path.join(ROOT, 'index.html')).href;
+const APP = pathToFileURL(path.join(ROOT, 'index.html')).href + '#/edit';
 const TMP = fs.mkdtempSync(path.join(process.env.TMPDIR || '/tmp', 'cv-studio-'));
 const pdfPages = (f) => {
   const d = fs.readFileSync(f).toString('latin1');

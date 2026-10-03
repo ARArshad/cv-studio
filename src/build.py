@@ -11,7 +11,8 @@ parts here are only for editing comfort:
     1-paper-and-ui.css.html   the CV styles and the editor chrome
     2-markup.html             the panel and canvas shell
     3-engine.js.html          data model, templates, renderer, pagination
-    4-app.js.html             typing, panel wiring, exports, start up
+    4-app.js.html             typing, panel wiring, exports
+    5-library.js.html         many CVs, the dashboard, routing, start up
 
 The photo is embedded as base64 so the finished file has no dependencies.
 Replace src/photo.jpg to change the picture the app starts with.
@@ -28,6 +29,7 @@ PARTS = [
     "2-markup.html",
     "3-engine.js.html",
     "4-app.js.html",
+    "5-library.js.html",
 ]
 TOKEN = "__PHOTO_B64__"
 

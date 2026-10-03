@@ -1,10 +1,55 @@
 <body>
-<div class="app">
+<!-- ============================ DASHBOARD ============================ -->
+<div class="dash" id="dash" hidden>
+  <header class="dash-top">
+    <div class="brand"><span class="logo">CV</span> CV Studio</div>
+    <span class="grow"></span>
+    <button class="dbtn" id="dashImport">Import a copy</button>
+    <button class="dbtn primary" id="dashNew">+ New CV</button>
+  </header>
+  <main class="dash-main">
+    <div class="dash-head">
+      <h1>My CVs</h1>
+      <p id="dashCount">Everything is saved in this browser.</p>
+    </div>
+    <div class="cards" id="cards"></div>
+  </main>
+</div>
+
+<div class="modal" id="newModal">
+  <div class="box wide">
+    <h2>Create a new CV</h2>
+    <div class="nrow">
+      <label for="newTitle">Name it, so you can find it later</label>
+      <input id="newTitle" type="text" placeholder="For example: Site electrician, Manchester jobs">
+    </div>
+    <div class="nrow">
+      <label>Start from</label>
+      <div class="seg" id="newStart">
+        <button class="on" data-start="example">Example content to edit</button>
+        <button data-start="blank">A blank page</button>
+      </div>
+    </div>
+    <div class="nrow">
+      <label>Template, you can change it any time</label>
+      <div class="tpls light" id="newTpls"></div>
+    </div>
+    <div class="foot">
+      <button class="btn" id="newCancel">Cancel</button>
+      <button class="btn primary" id="newGo">Create CV</button>
+    </div>
+  </div>
+</div>
+
+<div class="app" id="app" hidden>
 
   <!-- ============================ PANEL ============================ -->
   <aside class="panel">
     <div class="phead">
-      <h1>CV Studio</h1>
+      <div class="crumb">
+        <button class="back" id="btnBack" title="Back to all your CVs">&#8249; My CVs</button>
+        <input class="cvtitle" id="cvTitle" type="text" spellcheck="false" aria-label="CV name">
+      </div>
       <p>Click anything on the page to edit it. Everything saves as you go.</p>
       <div class="acts">
         <button class="btn primary w4" id="btnPdf">Download PDF</button>
@@ -16,7 +61,7 @@
         <button class="btn w2" id="btnOpenFile">Open a copy</button>
         <button class="btn w2" id="btnWord">Word file</button>
         <button class="btn w2" id="btnHtml">Clean HTML</button>
-        <button class="btn bad w4" id="btnReset">Start again from the original</button>
+        <button class="btn bad w4" id="btnReset">Reset this CV to the example</button>
       </div>
     </div>
 
@@ -150,6 +195,7 @@
 
 <input type="file" id="filePhoto" accept="image/*" hidden>
 <input type="file" id="fileOpen" accept="application/json,.cvjson" hidden>
+<input type="file" id="fileImport" accept="application/json,.cvjson" hidden>
 <div class="iconpop" id="iconpop"></div>
 
 <div class="modal" id="printModal">

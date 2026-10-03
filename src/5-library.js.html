@@ -1,0 +1,319 @@
+/* =====================================================================
+   17. THE LIBRARY: many CVs, kept in this browser
+   ---------------------------------------------------------------------
+   cv-studio-index        a list of {id, title, created, updated, template}
+   cv-studio-doc:<id>     one CV document, the same JSON the editor edits
+   cv-studio-thumb:<id>   the first page as clean HTML, for the dashboard
+
+   The index stays small so the dashboard opens fast, and each CV is its
+   own key so a very large photo in one CV cannot stop another from saving.
+   A CV saved by the single CV version (cv-studio-v2) is brought across the
+   first time this version opens, and the old key is left where it was.
+   ===================================================================== */
+var CUR = null;
+var LIB = (function(){
+  var IDX = 'cv-studio-index', DOCK = 'cv-studio-doc:', THK = 'cv-studio-thumb:';
+  function read(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+  function list(){ var l = read(IDX); return Array.isArray(l) ? l : []; }
+  function writeList(l){ localStorage.setItem(IDX, JSON.stringify(l)); }
+  function meta(id){ return list().filter(function(m){ return m.id === id; })[0] || null; }
+  function touch(id, fields){
+    var l = list();
+    l.forEach(function(m){ if(m.id === id){ for(var k in fields) m[k] = fields[k]; } });
+    writeList(l);
+  }
+  function readDoc(id){
+    var d = read(DOCK+id);
+    if(!d || !d.sections || !d.profile) return null;
+    d.design = d.design || starterDoc().design;
+    d.design.vars = d.design.vars || {};
+    return d;
+  }
+  function writeDoc(id, d){
+    localStorage.setItem(DOCK+id, JSON.stringify(d));
+    touch(id, { updated:Date.now(), template:d.design.template });
+  }
+  function create(title, d){
+    var id = 'cv_'+uid()+uid(), now = Date.now();
+    localStorage.setItem(DOCK+id, JSON.stringify(d));
+    var l = list();
+    l.unshift({ id:id, title:title || 'Untitled CV', created:now, updated:now, template:d.design.template });
+    writeList(l);
+    return id;
+  }
+  function rename(id, title){ touch(id, { title:title }); }
+  function remove(id){
+    writeList(list().filter(function(m){ return m.id !== id; }));
+    localStorage.removeItem(DOCK+id);
+    localStorage.removeItem(THK+id);
+  }
+  function duplicate(id){
+    var d = readDoc(id), m = meta(id); if(!d || !m) return null;
+    var nid = create('Copy of '+m.title, d);
+    var t = localStorage.getItem(THK+id);
+    if(t) try{ localStorage.setItem(THK+nid, t); }catch(e){}
+    return nid;
+  }
+  function thumb(id, html){
+    if(html === undefined) return localStorage.getItem(THK+id) || '';
+    try{ localStorage.setItem(THK+id, html); }catch(e){ /* a missing thumbnail is not worth an error */ }
+  }
+  function migrate(){
+    if(read(IDX)) return;
+    writeList([]);
+    var old = read(KEY);
+    if(old && old.sections && old.profile){
+      old.design = old.design || starterDoc().design;
+      create(suggestTitle(old), old);
+    }
+  }
+  return { list:list, meta:meta, readDoc:readDoc, writeDoc:writeDoc, create:create, rename:rename,
+           remove:remove, duplicate:duplicate, thumb:thumb, migrate:migrate };
+})();
+
+function suggestTitle(d){
+  var role = stripTags(d.profile.role).trim(), name = stripTags(d.profile.name).trim();
+  return role || (name ? name+' CV' : 'Untitled CV');
+}
+
+/* a CV with the same shape as the example, every field empty */
+function blankDoc(){
+  var d = starterDoc();
+  d.profile.name = ''; d.profile.role = ''; d.profile.photo = '';
+  d.profile.details = [{icon:'mail',text:''},{icon:'phone',text:''},{icon:'pin',text:''}];
+  d.sections.forEach(function(s){
+    if(s.type === 'text') s.body = '';
+    else if(s.type === 'entries') s.items = [{title:'',sub:'',date:'',pts:['']}];
+    else if(s.type === 'bullets') s.items = [''];
+    else s.items = [{name:'', level:(s.type==='languages'?3:0)},{name:'', level:(s.type==='languages'?3:0)}];
+  });
+  return d;
+}
+
+/* the first sheet, cleaned the same way as the HTML export */
+function captureThumb(){
+  if(!CUR) return;
+  var first = pagesEl.querySelector('.page'); if(!first) return;
+  var c = first.cloneNode(true);
+  $$('.ui, .photo-edit, .addbtn, .xbtn', c).forEach(function(n){ n.remove(); });
+  $$('[contenteditable]', c).forEach(function(n){ n.removeAttribute('contenteditable'); n.removeAttribute('data-ph'); n.removeAttribute('data-p'); });
+  $$('[id]', c).forEach(function(n){ n.removeAttribute('id'); });
+  LIB.thumb(CUR, c.outerHTML);
+}
+var thumbSoon = debounce(captureThumb, 900);
+
+function toast(msg){
+  var t = $('#toast');
+  if(!t){ t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toast.t); toast.t = setTimeout(function(){ t.classList.remove('on'); }, 2200);
+}
+
+/* =====================================================================
+   18. DASHBOARD
+   ===================================================================== */
+var cardsEl = $('#cards');
+function ago(t){
+  var s = Math.round((Date.now()-t)/1000);
+  if(s < 60) return 'just now';
+  var m = Math.round(s/60); if(m < 60) return m+' minute'+(m>1?'s':'')+' ago';
+  var h = Math.round(m/60); if(h < 24) return h+' hour'+(h>1?'s':'')+' ago';
+  var d = Math.round(h/24); if(d < 8) return d+' day'+(d>1?'s':'')+' ago';
+  return new Date(t).toLocaleDateString(undefined, {day:'numeric', month:'short', year:'numeric'});
+}
+function renderDash(){
+  var l = LIB.list().slice().sort(function(a,b){ return b.updated - a.updated; });
+  $('#dashCount').textContent = l.length
+    ? l.length+' CV'+(l.length>1?'s':'')+', saved in this browser. Keep a copy of anything important with Download a copy.'
+    : 'No CVs yet. Make your first one, it takes a minute.';
+  cardsEl.innerHTML = '';
+  cardsEl.appendChild(el('<button class="card newcard" data-act="new" type="button"><span class="plus">+</span>Create a new CV</button>'));
+  l.forEach(function(m){
+    var tpl = TPL[m.template] ? TPL[m.template].name : '';
+    var card = el('<div class="card" data-id="'+m.id+'">'
+      + '<button class="thumb" data-act="open" type="button" aria-label="Open '+esc(m.title)+'"><div class="tin"></div><span class="open">Open in editor</span></button>'
+      + '<div class="cinfo"><div class="tx">'
+      +   '<input class="cname" value="'+esc(m.title)+'" aria-label="CV name" spellcheck="false">'
+      +   '<small>'+esc(tpl)+(tpl?' &middot; ':'')+'Edited '+ago(m.updated)+'</small>'
+      + '</div><button class="more" data-act="menu" type="button" title="More">&#8943;</button></div>'
+      + '<div class="cmenu">'
+      +   '<button data-act="open">Open</button>'
+      +   '<button data-act="rename">Rename</button>'
+      +   '<button data-act="dup">Duplicate</button>'
+      +   '<button data-act="export">Download a copy</button>'
+      +   '<button data-act="del" class="bad">Delete</button>'
+      + '</div></div>');
+    var th = LIB.thumb(m.id);
+    if(th) card.querySelector('.tin').innerHTML = th;
+    else card.querySelector('.tin').innerHTML = '<div style="padding:80px 60px;font-size:40px;color:#9aa4b4">No preview yet</div>';
+    cardsEl.appendChild(card);
+  });
+  scaleThumbs();
+}
+function scaleThumbs(){
+  $$('.thumb', cardsEl).forEach(function(t){
+    var tin = t.querySelector('.tin');
+    tin.style.transform = 'scale('+(t.clientWidth/793.7)+')';
+  });
+}
+window.addEventListener('resize', debounce(function(){ if(!$('#dash').hidden) scaleThumbs(); }, 120));
+
+function closeMenus(){ $$('.cmenu.on', cardsEl).forEach(function(m){ m.classList.remove('on'); }); }
+document.addEventListener('click', function(e){ if(!e.target.closest('.cmenu') && !e.target.closest('[data-act="menu"]')) closeMenus(); });
+
+cardsEl.addEventListener('click', function(e){
+  var b = e.target.closest('[data-act]'); if(!b) return;
+  var act = b.getAttribute('data-act');
+  if(act === 'new'){ openNew(); return; }
+  var card = b.closest('.card'), id = card && card.getAttribute('data-id'); if(!id) return;
+  var m = LIB.meta(id);
+  if(act === 'menu'){ var mn = card.querySelector('.cmenu'), was = mn.classList.contains('on'); closeMenus(); mn.classList.toggle('on', !was); return; }
+  closeMenus();
+  if(act === 'open') go('#/cv/'+id);
+  else if(act === 'rename'){ var inp = card.querySelector('.cname'); inp.focus(); inp.select(); }
+  else if(act === 'dup'){ LIB.duplicate(id); renderDash(); toast('Copied "'+m.title+'"'); }
+  else if(act === 'export'){
+    var d = LIB.readDoc(id); if(!d) return;
+    download((m.title.replace(/[^\w\s-]/g,'').trim() || 'CV')+'.cvjson', JSON.stringify(d), 'application/json');
+  }
+  else if(act === 'del'){
+    if(!confirm('Delete "'+m.title+'"? This cannot be undone. Download a copy first if you might want it again.')) return;
+    LIB.remove(id); renderDash(); toast('Deleted "'+m.title+'"');
+  }
+});
+cardsEl.addEventListener('change', function(e){
+  if(!e.target.classList.contains('cname')) return;
+  var id = e.target.closest('.card').getAttribute('data-id');
+  var v = e.target.value.trim() || 'Untitled CV';
+  e.target.value = v; LIB.rename(id, v);
+});
+cardsEl.addEventListener('keydown', function(e){
+  if(e.target.classList.contains('cname') && e.key === 'Enter') e.target.blur();
+});
+
+/* import a saved .cvjson as a new CV */
+$('#dashImport').addEventListener('click', function(){ $('#fileImport').click(); });
+$('#fileImport').addEventListener('change', function(){
+  var f = this.files && this.files[0]; if(!f) return;
+  var r = new FileReader();
+  r.onload = function(ev){
+    try{
+      var d = JSON.parse(ev.target.result);
+      if(!d || !d.sections || !d.profile) throw new Error('bad file');
+      d.design = d.design || starterDoc().design; d.design.vars = d.design.vars || {};
+      var title = f.name.replace(/\.(cvjson|json)$/i,'') || suggestTitle(d);
+      go('#/cv/'+LIB.create(title, d));
+    }catch(err){ alert('That file could not be read. It should be a .cvjson file saved from CV Studio.'); }
+  };
+  r.readAsText(f); this.value = '';
+});
+
+/* ---------------- new CV dialog ---------------- */
+var newModal = $('#newModal'), newTplsEl = $('#newTpls'), newTpl = 'classic', newStart = 'example';
+TPL_ORDER.forEach(function(id){
+  var b = document.createElement('button');
+  b.className = 'ntpl'; b.type = 'button'; b.setAttribute('data-tpl', id);
+  b.innerHTML = miniSvg(id) + '<span class="nm">' + TPL[id].name + '</span>';
+  newTplsEl.appendChild(b);
+});
+function markNew(){
+  $$('.ntpl', newTplsEl).forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-tpl') === newTpl); });
+  $$('#newStart button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-start') === newStart); });
+}
+function openNew(){
+  newTpl = 'classic'; newStart = 'example'; $('#newTitle').value = '';
+  markNew(); newModal.classList.add('on');
+  setTimeout(function(){ $('#newTitle').focus(); }, 30);
+}
+newTplsEl.addEventListener('click', function(e){ var b = e.target.closest('.ntpl'); if(!b) return; newTpl = b.getAttribute('data-tpl'); markNew(); });
+$('#newStart').addEventListener('click', function(e){ var b = e.target.closest('button'); if(!b) return; newStart = b.getAttribute('data-start'); markNew(); });
+$('#dashNew').addEventListener('click', openNew);
+$('#newCancel').addEventListener('click', function(){ newModal.classList.remove('on'); });
+newModal.addEventListener('click', function(e){ if(e.target === newModal) newModal.classList.remove('on'); });
+$('#newTitle').addEventListener('keydown', function(e){ if(e.key === 'Enter') $('#newGo').click(); });
+$('#newGo').addEventListener('click', function(){
+  var d = newStart === 'blank' ? blankDoc() : starterDoc();
+  d.design.template = newTpl;
+  var title = $('#newTitle').value.trim() || (newStart === 'blank' ? 'Untitled CV' : 'My CV');
+  newModal.classList.remove('on');
+  go('#/cv/'+LIB.create(title, d));
+});
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape') newModal.classList.remove('on');
+});
+
+/* =====================================================================
+   19. MOVING BETWEEN THE DASHBOARD AND THE EDITOR
+   ---------------------------------------------------------------------
+   #/            the dashboard
+   #/cv/<id>     one CV in the editor
+   #/edit        the CV edited most recently, or a fresh example if none
+   ===================================================================== */
+function go(hash){ if(location.hash === hash) route(); else location.hash = hash; }
+
+function leaveEditor(){
+  if(!CUR) return;
+  save();
+  captureThumb();   /* now, rather than after the debounce */
+  CUR = null;
+}
+
+function showDash(){
+  $('#app').hidden = true; $('#dash').hidden = false;
+  document.title = 'My CVs – CV Studio';
+  renderDash();
+}
+
+function openEditor(id){
+  var d = LIB.readDoc(id);
+  if(!d){ go('#/'); return; }
+  CUR = id;
+  DOC = d;
+  undoStack.length = 0; redoStack.length = 0;
+  $('#dash').hidden = true; $('#app').hidden = false;
+  var m = LIB.meta(id);
+  $('#cvTitle').value = m ? m.title : '';
+  document.title = (m ? m.title : 'CV') + ' – CV Studio';
+  render(); buildSectionList(); markScheme(); markTemplate(); syncInputs(); refreshUndo(); runChecks();
+  setZoom(DOC.design.zoom || .8);
+  thumbSoon();
+}
+
+function route(){
+  var h = location.hash || '#/';
+  var m = h.match(/^#\/cv\/([\w-]+)$/);
+  if(m){
+    if(CUR !== m[1]){ leaveEditor(); openEditor(m[1]); }
+    return;
+  }
+  if(h === '#/edit'){
+    var l = LIB.list().slice().sort(function(a,b){ return b.updated - a.updated; });
+    var id = l.length ? l[0].id : LIB.create('My CV', starterDoc());
+    location.replace('#/cv/'+id);
+    return;
+  }
+  leaveEditor();
+  showDash();
+}
+
+$('#btnBack').addEventListener('click', function(){ go('#/'); });
+$('#cvTitle').addEventListener('change', function(){
+  var v = this.value.trim() || 'Untitled CV';
+  this.value = v;
+  if(CUR){ LIB.rename(CUR, v); document.title = v + ' – CV Studio'; }
+});
+$('#cvTitle').addEventListener('keydown', function(e){ if(e.key === 'Enter') this.blur(); });
+
+/* =====================================================================
+   20. START
+   ===================================================================== */
+buildPhrases();
+LIB.migrate();
+window.addEventListener('hashchange', route);
+window.addEventListener('resize', debounce(function(){ if(CUR) updatePageFlag(); }, 250));
+route();
+
+})();
+</script>
+</body>
+</html>
