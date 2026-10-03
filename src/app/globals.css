@@ -1,0 +1,37 @@
+@import "tailwindcss";
+@import "./cv.css";
+
+@theme {
+  --color-brand-50: #eef4ff;
+  --color-brand-100: #dce7ff;
+  --color-brand-200: #b9ceff;
+  --color-brand-500: #3d6ff5;
+  --color-brand-600: #2f5ae0;
+  --color-brand-700: #2547b6;
+  --color-ink: #141a26;
+  --font-sans: var(--f-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+html { color-scheme: light; }
+body { background: #f5f7fb; color: var(--color-ink); }
+
+/* the editor preview and the dashboard thumbnails draw pages with a shadow */
+.paper-shadow .cv-page { box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 12px 32px rgba(16, 24, 40, 0.12); }
+.cv-clickable .blk[data-section] { cursor: pointer; }
+.cv-clickable .blk[data-section]:hover { outline: 2px dashed color-mix(in srgb, #3d6ff5 45%, transparent); outline-offset: 2px; border-radius: 2px; }
+
+@media print {
+  html, body { background: #fff !important; }
+  .no-print { display: none !important; }
+  .print-area { position: static !important; overflow: visible !important; padding: 0 !important; margin: 0 !important; background: #fff !important; }
+  .print-area .preview-scale { transform: none !important; width: auto !important; height: auto !important; }
+  .print-area .cv-pages { gap: 0 !important; display: block !important; }
+  .print-area .cv-page { box-shadow: none !important; break-after: page; margin: 0 !important; }
+  .print-area .cv-page:last-child { break-after: auto; }
+  .print-area .blk[data-section] { outline: none !important; }
+}
+
+@media print {
+  .print-reset { height: auto !important; min-height: 0 !important; overflow: visible !important; display: block !important; }
+  .print-flat { display: block !important; padding: 0 !important; margin: 0 !important; }
+}

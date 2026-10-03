@@ -1,0 +1,162 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { X } from "lucide-react";
+
+export function cx(...c: (string | false | null | undefined)[]) {
+  return c.filter(Boolean).join(" ");
+}
+
+export function Logo({ href = "/", className }: { href?: string; className?: string }) {
+  return (
+    <Link href={href} className={cx("flex items-center gap-2.5 font-semibold tracking-tight text-ink", className)}>
+      <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-white shadow-sm">
+        <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" aria-hidden>
+          <path d="M7 4h7l4 4v12H7z" /><path d="M14 4v4h4" /><path d="M10 13h5M10 16.5h3.5" />
+        </svg>
+      </span>
+      <span className="text-[17px]">CV Studio</span>
+    </Link>
+  );
+}
+
+type Variant = "primary" | "secondary" | "ghost" | "danger";
+const VARIANTS: Record<Variant, string> = {
+  primary: "bg-brand-600 text-white hover:bg-brand-700 shadow-sm",
+  secondary: "bg-white text-ink border border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-xs",
+  ghost: "text-slate-600 hover:bg-slate-100 hover:text-ink",
+  danger: "bg-red-600 text-white hover:bg-red-700",
+};
+
+export function Button({
+  variant = "secondary", size = "md", className, ...rest
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: "sm" | "md" | "lg" }) {
+  const sizes = { sm: "h-8 px-3 text-[13px]", md: "h-9.5 px-4 text-sm", lg: "h-12 px-6 text-[15px]" };
+  return (
+    <button
+      type="button"
+      {...rest}
+      className={cx(
+        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer",
+        VARIANTS[variant], sizes[size], className,
+      )}
+    />
+  );
+}
+
+export function IconButton({ label, className, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      {...rest}
+      className={cx("grid h-8 w-8 place-items-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-ink disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer", className)}
+    />
+  );
+}
+
+export function Modal({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean }) {
+  useEffect(() => {
+    if (!open) return;
+    const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/45 p-4 pt-[6vh] backdrop-blur-[2px] no-print" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div role="dialog" aria-modal aria-label={title} className={cx("w-full rounded-2xl bg-white shadow-2xl", wide ? "max-w-4xl" : "max-w-md")}>
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <h2 className="text-lg font-semibold">{title}</h2>
+          <IconButton label="Close" onClick={onClose}><X className="h-4.5 w-4.5" /></IconButton>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/** a small dropdown anchored to its trigger */
+export function Menu({ trigger, children, align = "right" }: { trigger: (open: () => void) => ReactNode; children: (close: () => void) => ReactNode; align?: "left" | "right" }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+  return (
+    <div ref={ref} className="relative">
+      {trigger(() => setOpen((o) => !o))}
+      {open && (
+        <div className={cx("absolute z-40 mt-1.5 min-w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl", align === "right" ? "right-0" : "left-0")}>
+          {children(() => setOpen(false))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function MenuItem({ icon, children, onClick, danger }: { icon?: ReactNode; children: ReactNode; onClick: () => void; danger?: boolean }) {
+  return (
+    <button type="button" onClick={onClick} className={cx("flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm cursor-pointer", danger ? "text-red-600 hover:bg-red-50" : "text-slate-700 hover:bg-slate-100")}>
+      {icon}{children}
+    </button>
+  );
+}
+
+export function Field({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
+  return (
+    <label className={cx("block", className)}>
+      <span className="mb-1.5 block text-[12.5px] font-medium text-slate-600">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+export const inputCls = "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-ink shadow-xs outline-none transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-3 focus:ring-brand-500/15";
+
+export function Toast({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <div className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2.5 text-sm text-white shadow-lg no-print" role="status">
+      {message}
+    </div>
+  );
+}
+
+export function useToast(): [string | null, (m: string) => void] {
+  const [msg, setMsg] = useState<string | null>(null);
+  const t = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const show = (m: string) => {
+    setMsg(m);
+    if (t.current) clearTimeout(t.current);
+    t.current = setTimeout(() => setMsg(null), 2400);
+  };
+  return [msg, show];
+}
+
+export function download(name: string, text: string, type = "application/json") {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 500);
+}
+
+export function timeAgo(t: number): string {
+  const s = Math.round((Date.now() - t) / 1000);
+  if (s < 60) return "just now";
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} hour${h > 1 ? "s" : ""} ago`;
+  const d = Math.round(h / 24);
+  if (d < 8) return `${d} day${d > 1 ? "s" : ""} ago`;
+  return new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+}
