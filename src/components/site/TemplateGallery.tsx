@@ -4,14 +4,26 @@ import Link from "next/link";
 import { Crown } from "lucide-react";
 import { CvThumb } from "@/components/cv/CvThumb";
 import { useTemplateSamples } from "@/components/NewCvDialog";
-import { TEMPLATES } from "@/lib/templates";
+import { useState } from "react";
+import { CATEGORIES, TEMPLATES, type Category } from "@/lib/templates";
 import type { TemplateId } from "@/lib/types";
 
-export function TemplateGallery({ limit }: { limit?: number }) {
+export function TemplateGallery({ limit, filterable }: { limit?: number; filterable?: boolean }) {
   const samples = useTemplateSamples();
+  const [cat, setCat] = useState<Category | "all" | "premium">("all");
+  const list = TEMPLATES.filter((t) => cat === "all" ? true : cat === "premium" ? t.premium : t.categories.includes(cat)).slice(0, limit);
   return (
+    <>
+    {filterable && (
+      <div className="mb-10 flex flex-wrap gap-2" data-testid="gallery-categories">
+        {([["all", "All templates"], ["premium", "Premium"], ...CATEGORIES.map((c) => [c.id, c.name])] as [typeof cat, string][]).map(([k, l]) => (
+          <button key={k} type="button" onClick={() => setCat(k)}
+            className={"rounded-full px-4 py-2 text-sm font-medium transition cursor-pointer " + (cat === k ? "bg-ink text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200")}>{l}</button>
+        ))}
+      </div>
+    )}
     <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-5">
-      {TEMPLATES.slice(0, limit).map((t) => (
+      {list.map((t) => (
         <div key={t.id} className="group">
           <div className="relative overflow-hidden rounded-xl shadow-md ring-1 ring-slate-200 transition group-hover:-translate-y-1 group-hover:shadow-xl">
             <CvThumb cv={samples[t.id]} />
@@ -29,6 +41,7 @@ export function TemplateGallery({ limit }: { limit?: number }) {
         </div>
       ))}
     </div>
+    </>
   );
 }
 

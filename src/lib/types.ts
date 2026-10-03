@@ -21,6 +21,8 @@ export interface Personal {
   jobTitle: string;
   /** a data URL or a path under /public; empty means no photo */
   photo: string;
+  /** the uncropped picture, kept so the crop can be changed later */
+  photoSource?: string;
   details: Detail[];
 }
 
@@ -60,7 +62,8 @@ export type SectionKind = "text" | "entries" | "items";
 export type SectionType =
   | "summary" | "experience" | "education" | "skills" | "languages"
   | "projects" | "certificates" | "courses" | "awards" | "volunteering"
-  | "interests" | "references" | "strengths" | "publications" | "custom";
+  | "interests" | "references" | "strengths" | "publications" | "softSkills" | "organizations"
+  | "conferences" | "teaching" | "freelance" | "testimonials" | "honors" | "custom";
 
 export type Column = "main" | "side";
 
@@ -87,18 +90,21 @@ export type TemplateId =
   | "aurora" | "meridian" | "summit" | "atlas" | "harbor"
   | "vertex" | "chronicle" | "ledger" | "linen" | "prism"
   | "cascade" | "monarch" | "horizon" | "pulse" | "mosaic"
-  | "nordic" | "apex" | "bloom" | "sterling" | "orbit";
+  | "nordic" | "apex" | "bloom" | "sterling" | "orbit"
+  | "beacon" | "keystone" | "catalyst" | "fusion" | "campus"
+  | "terminal" | "silicon" | "elegance" | "canvas" | "zenith";
 
 export type FontKey =
   | "inter" | "lato" | "roboto" | "openSans" | "sourceSans" | "montserrat"
   | "raleway" | "poppins" | "nunito" | "workSans" | "dmSans" | "manrope"
-  | "merriweather" | "lora" | "playfair" | "ebGaramond" | "crimson" | "libreBaskerville";
+  | "merriweather" | "lora" | "playfair" | "ebGaramond" | "crimson" | "libreBaskerville" | "jetbrainsMono";
 
 export type SkillStyle = "dots" | "bars" | "blocks" | "rings" | "tags" | "text";
 export type PhotoShape = "circle" | "rounded" | "square";
 export type PageSize = "A4" | "Letter";
 export type Spacing = "compact" | "normal" | "relaxed";
 export type Layout = "single" | "left" | "right";
+export type DateFormat = "mm/yyyy" | "mon yyyy" | "month yyyy" | "yyyy";
 export type Backdrop = "none" | "dots" | "grid" | "lines" | "corner" | "wave";
 
 export interface Design {
@@ -130,6 +136,8 @@ export interface Design {
   /** small icons beside section headings */
   headingIcons: boolean;
   backdrop: Backdrop;
+  /** how picked dates are written */
+  dateFormat: DateFormat;
 }
 
 export interface Cv {

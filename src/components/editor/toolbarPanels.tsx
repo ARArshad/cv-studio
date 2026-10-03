@@ -158,6 +158,9 @@ export function PagePanel() {
       <div className="mt-3">
         <Slider label="Page margins" value={d.margin} min={20} max={64} step={1} format={(v) => `${Math.round(v * 0.2646)} mm`} onChange={(v) => set("margin", v, "margin")} />
       </div>
+      <PanelLabel>Dates</PanelLabel>
+      <Seg value={d.dateFormat ?? "mon yyyy"} onChange={(v) => set("dateFormat", v)} testId="date-format"
+        options={[{ v: "mm/yyyy", label: "03/2021" }, { v: "mon yyyy", label: "Mar 2021" }, { v: "month yyyy", label: "March 2021" }, { v: "yyyy", label: "2021" }]} />
       <PanelLabel>Skill and language levels</PanelLabel>
       <Seg value={d.skillStyle} onChange={(v) => set("skillStyle", v)} testId="skill-style"
         options={[{ v: "dots", label: "Dots" }, { v: "bars", label: "Bars" }, { v: "blocks", label: "Blocks" }]} />

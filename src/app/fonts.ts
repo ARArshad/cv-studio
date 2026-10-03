@@ -1,5 +1,5 @@
 import {
-  Crimson_Pro, DM_Sans, EB_Garamond, Inter, Lato, Libre_Baskerville, Lora, Manrope, Merriweather, Montserrat,
+  Crimson_Pro, DM_Sans, JetBrains_Mono, EB_Garamond, Inter, Lato, Libre_Baskerville, Lora, Manrope, Merriweather, Montserrat,
   Nunito, Open_Sans, Playfair_Display, Poppins, Raleway, Roboto, Source_Sans_3, Work_Sans,
 } from "next/font/google";
 
@@ -22,9 +22,10 @@ const lora = Lora({ subsets: ["latin"], variable: "--f-lora", display: "swap" })
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--f-playfair", display: "swap" });
 const ebGaramond = EB_Garamond({ subsets: ["latin"], variable: "--f-eb-garamond", display: "swap" });
 const crimson = Crimson_Pro({ subsets: ["latin"], variable: "--f-crimson", display: "swap" });
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--f-jetbrains-mono", display: "swap" });
 const libreBaskerville = Libre_Baskerville({ subsets: ["latin"], weight: ["400", "700"], style: ["normal", "italic"], variable: "--f-libre-baskerville", display: "swap" });
 
 export const fontVariables = [
   inter, lato, roboto, openSans, sourceSans, montserrat, raleway, poppins, nunito, workSans, dmSans, manrope,
-  merriweather, lora, playfair, ebGaramond, crimson, libreBaskerville,
+  merriweather, lora, playfair, ebGaramond, crimson, libreBaskerville, jetbrainsMono,
 ].map((f) => f.variable).join(" ");

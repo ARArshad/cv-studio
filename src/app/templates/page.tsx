@@ -4,7 +4,7 @@ import { TemplateGallery } from "@/components/site/TemplateGallery";
 
 export const metadata: Metadata = {
   title: "CV templates",
-  description: "Twenty professional CV templates, premium designs included free, from one column designs that pass applicant tracking systems to bold two column layouts.",
+  description: "Thirty professional CV templates, premium designs included free, from one column designs that pass applicant tracking systems to bold two column layouts.",
 };
 
 export default function TemplatesPage() {
@@ -16,7 +16,7 @@ export default function TemplatesPage() {
         <p className="mt-3 max-w-2xl text-lg text-slate-600">
           Pick one to start. Your content moves with you, so you can switch template, colour and fonts at any point.
         </p>
-        <div className="mt-12"><TemplateGallery /></div>
+        <div className="mt-10"><TemplateGallery filterable /></div>
       </main>
       <SiteFooter />
     </div>

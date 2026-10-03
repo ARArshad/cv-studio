@@ -5,7 +5,7 @@ import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, u
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft, ChevronDown, Copy, Download, FileJson, LayoutTemplate, ListChecks, Minus, Palette, PanelsTopLeft,
-  Plus, Redo2, Rows3, Settings2, Sparkles, Type, Undo2, UserRound, X,
+  Plus, Redo2, Rows3, ScanSearch, Settings2, Sparkles, Type, Undo2, UserRound, X,
 } from "lucide-react";
 import { CvDocument, PAGE_PX } from "@/components/cv/CvDocument";
 import { EditContext, type Action, type EditApi } from "@/components/cv/edit";
@@ -14,14 +14,16 @@ import { exportFile, fileName } from "@/lib/io";
 import { SECTION_LABELS } from "@/lib/sample";
 import { checkCv } from "@/lib/score";
 import { useHydrated, useLibrary } from "@/lib/store";
-import type { Cv, EntryFields } from "@/lib/types";
+import type { Cv, Entry, EntryFields } from "@/lib/types";
 import { EditorContext, type Draft } from "./context";
-import { AddSectionDrawer, CheckDrawer, PersonalDrawer, PhrasesDrawer, RearrangeDrawer, TemplatesDrawer, readPhoto } from "./drawers";
+import { AddSectionDrawer, AtsDrawer, CheckDrawer, PersonalDrawer, PhrasesDrawer, RearrangeDrawer, TemplatesDrawer } from "./drawers";
+import { DatePicker } from "./DatePicker";
+import { PhotoCropper, loadImageFile } from "./PhotoCropper";
 import { applyAction, applyPath } from "./ops";
 import { FloatingMenu, Popover, Toggle } from "./Popover";
 import { FontsPanel, LayoutPanel, PagePanel, ThemesPanel } from "./toolbarPanels";
 
-type DrawerId = "add" | "arrange" | "templates" | "personal" | "phrases" | "check";
+type DrawerId = "add" | "arrange" | "templates" | "personal" | "phrases" | "check" | "ats";
 
 const TOOLS: { id: DrawerId; label: string; icon: ReactNode }[] = [
   { id: "add", label: "Add section", icon: <Plus className="h-[18px] w-[18px]" /> },
@@ -30,11 +32,12 @@ const TOOLS: { id: DrawerId; label: string; icon: ReactNode }[] = [
   { id: "personal", label: "Personal info", icon: <UserRound className="h-[18px] w-[18px]" /> },
   { id: "phrases", label: "Phrases", icon: <Sparkles className="h-[18px] w-[18px]" /> },
   { id: "check", label: "CV check", icon: <ListChecks className="h-[18px] w-[18px]" /> },
+  { id: "ats", label: "ATS checker", icon: <ScanSearch className="h-[18px] w-[18px]" /> },
 ];
 
 const DRAWER_TITLES: Record<DrawerId, string> = {
   add: "Add a section", arrange: "Rearrange sections", templates: "Templates", personal: "Personal information",
-  phrases: "Ready made phrases", check: "CV check",
+  phrases: "Ready made phrases", check: "CV check", ats: "ATS checker",
 };
 
 export function Editor({ id }: { id: string }) {
@@ -62,6 +65,8 @@ function EditorInner({ id }: { id: string }) {
   const [pages, setPages] = useState(1);
   const [lastPath, setLastPath] = useState<string | null>(null);
   const [entryMenu, setEntryMenu] = useState<{ sid: string; eid: string; anchor: DOMRect } | null>(null);
+  const [datePick, setDatePick] = useState<{ sid: string; eid: string; which: "start" | "end"; anchor: DOMRect } | null>(null);
+  const [crop, setCrop] = useState<string | null>(null);
   const [toast, showToast] = useToast();
   const photoRef = useRef<HTMLInputElement>(null);
 
@@ -71,7 +76,13 @@ function EditorInner({ id }: { id: string }) {
   const update = useCallback((fn: (d: Draft) => void, group?: string) => updateCv(id, fn, group), [id, updateCv]);
 
   const act = useCallback((a: Action) => {
-    if (a.t === "photo") { photoRef.current?.click(); return; }
+    if (a.t === "photo") {
+      const p = useLibrary.getState().cvs[id]?.data.personal;
+      if (p?.photo) setCrop(p.photoSource || p.photo);
+      else photoRef.current?.click();
+      return;
+    }
+    if (a.t === "datePicker") { setDatePick({ sid: a.sid, eid: a.eid, which: a.which, anchor: a.anchor }); return; }
     if (a.t === "entryMenu") { setEntryMenu({ sid: a.sid, eid: a.eid, anchor: a.anchor }); return; }
     if (a.t === "delSection") {
       const s = useLibrary.getState().cvs[id]?.data.sections.find((x) => x.id === a.sid);
@@ -173,7 +184,8 @@ function EditorInner({ id }: { id: string }) {
                 {drawer === "add" && <AddSectionDrawer onDone={() => setDrawer(null)} />}
                 {drawer === "arrange" && <RearrangeDrawer />}
                 {drawer === "templates" && <TemplatesDrawer />}
-                {drawer === "personal" && <PersonalDrawer onPhoto={() => photoRef.current?.click()} />}
+                {drawer === "personal" && <PersonalDrawer onPhoto={() => act({ t: "photo" })} />}
+                {drawer === "ats" && <AtsDrawer />}
                 {drawer === "phrases" && <PhrasesDrawer />}
                 {drawer === "check" && <CheckDrawer pages={pages} />}
               </div>
@@ -187,8 +199,36 @@ function EditorInner({ id }: { id: string }) {
         </div>
 
         {entryMenu && <EntryMenu {...entryMenu} onClose={() => setEntryMenu(null)} />}
+        {datePick && (() => {
+          const s = cv.data.sections.find((x) => x.id === datePick.sid);
+          const e = s?.entries.find((x) => x.id === datePick.eid);
+          if (!s || !e) return null;
+          const key = datePick.which === "start" ? "startDate" : "endDate";
+          const setE = (fn: (x: Entry) => void) => update((d) => { const x = d.data.sections.find((q) => q.id === s.id)?.entries.find((q) => q.id === e.id); if (x) fn(x); });
+          return (
+            <DatePicker
+              key={datePick.sid + datePick.eid + datePick.which}
+              anchor={datePick.anchor}
+              value={e[key]}
+              current={e.current}
+              allowCurrent={datePick.which === "end" && !["certificates", "awards", "publications", "honors"].includes(s.type)}
+              onChange={(v) => setE((x) => { x[key] = v; if (key === "endDate" && v) x.current = false; })}
+              onCurrent={(v) => setE((x) => { x.current = v; })}
+              onClose={() => setDatePick(null)}
+            />
+          );
+        })()}
+        <PhotoCropper
+          open={!!crop}
+          src={crop ?? ""}
+          shape={cv.design.photoShape}
+          onClose={() => setCrop(null)}
+          onPickNew={() => photoRef.current?.click()}
+          onRemove={() => { update((d) => { d.data.personal.photo = ""; d.data.personal.photoSource = ""; }); setCrop(null); }}
+          onSave={(url, source) => { update((d) => { d.data.personal.photo = url; d.data.personal.photoSource = source; d.design.showPhoto = true; }); setCrop(null); }}
+        />
         <input ref={photoRef} type="file" accept="image/*" hidden data-testid="photo-file"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) readPhoto(f, (url) => update((d) => { d.data.personal.photo = url; d.design.showPhoto = true; })); e.target.value = ""; }} />
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) loadImageFile(f, (src) => setCrop(src)); e.target.value = ""; }} />
         <Toast message={toast} />
       </div>
     </EditorContext.Provider>

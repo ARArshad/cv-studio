@@ -1,7 +1,7 @@
 # CV Studio
 
-Build a professional CV by typing straight onto the page, with twenty templates (ten of them
-premium designs, all free) and a clean PDF download.
+Build a professional CV by typing straight onto the page, with thirty templates in eleven
+categories (premium designs included, all free) and a clean PDF download.
 Free, private (CVs stay in the browser) and no sign up.
 
 ![The editor](docs/editor.png)
@@ -26,32 +26,42 @@ Free, private (CVs stay in the browser) and no sign up.
     headings and body, size, line and letter spacing), **Themes** (16 two colour themes, custom
     colours, six page backgrounds), **Page** (A4 or Letter, spacing, margins, six skill level
     styles), and **Download** (PDF, a .json copy, duplicate).
-  - **Tool card**: **Add section** (15 section types), **Rearrange** (drag to reorder, move
+  - Dates open a month and year picker (or take free text such as "Summer 2019"), and the Page
+    panel changes how every date is written. Clicking the photo opens a crop tool: drag to frame,
+    zoom, rotate.
+  - **Tool card**: **Add section** (22 section types), **Rearrange** (drag to reorder, move
     between columns, hide and show), **Templates** (all 20 drawn with your own CV, with filters),
     **Personal info** (photo and contact details), **Phrases** (ready made bullets dropped into
-    the job you were editing) and **CV check** (a score with a reason for every point).
+    the job you were editing), **CV check** (a score with a reason for every point) and **ATS
+    checker** (paste a job advert to see which of its key words your CV already uses).
+  - New CVs start from a worked example for the role (marketing, software and IT, student,
+    executive, design, healthcare) or a blank skeleton with placeholders in every field.
   - Real pages: long CVs flow onto further pages, a job's later bullets carry over rather than
     leaving a gap, and a heading never sits alone at the bottom of a page.
 
 ## Templates
 
-Twenty templates, every one free. The ten marked premium are the kind of design other builders
-charge for: icon headings, curved and wave headers, monograms, timelines, skill rings, card
-layouts and decorative backgrounds.
+Thirty templates, every one free, in eleven categories: Simple, Modern, Professional, Executive,
+Creative, Minimalist, Traditional, Skill-based, Hybrid, Student, and IT and tech. The fifteen
+marked premium are the kind of design other builders charge for. All of them are original
+designs; none copies another builder's templates.
 
 | Premium | | |
 |---|---|---|
 | **Pulse** curved dark header, icon headings | **Cascade** wave header with photo | **Monarch** monogram crest, serif, double rules |
 | **Horizon** full height photo panel, timeline | **Mosaic** sections on soft cards | **Nordic** stone sidebar, initial watermark |
 | **Apex** black header, accent stripe | **Bloom** soft circles, tinted sidebar | **Sterling** navy executive, icons, timeline |
-| **Orbit** dark tech sidebar, skill rings | | |
+| **Orbit** dark tech sidebar, skill rings | **Zenith** summary in the header, pill headings | **Fusion** hybrid, skills band first |
+| **Catalyst** skill based, strengths first | **Terminal** monospace, code style header | **Elegance** split header, gold accent |
+| **Canvas** colour stripe, gradient header | | |
 
-| Classic | | |
+| Free | | |
 |---|---|---|
-| **Aurora** colour sidebar with photo | **Meridian** centred, one column, ATS friendly | **Summit** colour banner, right column |
-| **Atlas** big name, light sidebar | **Harbor** serif, small caps, executive | **Vertex** charcoal sidebar, timeline |
-| **Chronicle** dates in their own column | **Ledger** compact, two columns | **Linen** minimal, headings in the margin |
-| **Prism** angled colour header | | |
+| **Aurora** colour sidebar with photo | **Meridian** centred, one column | **Summit** colour banner, right column |
+| **Atlas** big name, light sidebar | **Harbor** serif, small caps | **Vertex** charcoal sidebar, timeline |
+| **Chronicle** dates in their own column | **Ledger** compact, two columns | **Linen** headings in the margin |
+| **Prism** angled colour header | **Campus** education first, for students | **Silicon** compact IT layout |
+| **Keystone** the classic serif CV | **Beacon** clean single column | |
 
 ![Templates](docs/templates.png)
 
@@ -112,7 +122,9 @@ signed in feature later.
 | `src/lib/types.ts` | the CV document: personal details, sections, design |
 | `src/lib/templates.ts` | the twenty templates and the colour themes |
 | `src/lib/rich.ts` | the small rich text format (bold, italic, underline) |
-| `src/lib/sample.ts` | the example CV, blank CV and new section helpers |
+| `src/lib/sample.ts` | blank CV, section types and new section helpers |
+| `src/lib/personas.ts` | worked examples for six kinds of job |
+| `src/lib/dates.ts` | date formats |
 | `src/lib/store.ts` | the library of CVs, saving, undo and redo |
 | `src/lib/io.ts` | download and import, and bringing older saves up to date |
 | `src/lib/score.ts` | the CV score |

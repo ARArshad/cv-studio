@@ -30,6 +30,7 @@ export type Action =
   | { t: "hideSection"; sid: string }
   | { t: "colSection"; sid: string }
   | { t: "entryMenu"; sid: string; eid: string; anchor: DOMRect }
+  | { t: "datePicker"; sid: string; eid: string; which: "start" | "end"; anchor: DOMRect }
   | { t: "photo" };
 
 export interface EditApi {

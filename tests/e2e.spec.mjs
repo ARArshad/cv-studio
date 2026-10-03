@@ -37,7 +37,8 @@ if (!BASE) {
 }
 
 const TEMPLATES = ["pulse", "cascade", "monarch", "horizon", "mosaic", "nordic", "apex", "bloom", "sterling", "orbit",
-  "aurora", "meridian", "summit", "atlas", "harbor", "vertex", "chronicle", "ledger", "linen", "prism"];
+  "aurora", "meridian", "summit", "atlas", "harbor", "vertex", "chronicle", "ledger", "linen", "prism",
+  "zenith", "fusion", "catalyst", "campus", "terminal", "silicon", "elegance", "canvas", "keystone", "beacon"];
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "cv-e2e-"));
 const browser = await chromium.launch();
@@ -74,6 +75,7 @@ try {
   await page.getByTestId("new-title").waitFor();
   await page.getByTestId("new-title").fill("Marketing roles");
   await page.locator('[role=dialog] [data-template="sterling"]').click();
+  await page.getByTestId("new-persona").selectOption("marketing");
   await page.getByTestId("new-create").click();
   await page.waitForURL(/\/editor\//);
   await page.locator(`${P} > .cv-page`).first().waitFor();
@@ -202,6 +204,42 @@ try {
   }
   await tool("templates");
 
+  /* photo crop */
+  await page.getByTestId("tb-layout").click();
+  await page.getByTestId("toggle-photo").click();
+  await page.keyboard.press("Escape");
+  await page.locator(`${P} .photo`).first().click();
+  await page.getByTestId("cropper").waitFor();
+  const area = await page.getByTestId("crop-area").boundingBox();
+  await page.mouse.move(area.x + 150, area.y + 150);
+  await page.mouse.down();
+  await page.mouse.move(area.x + 120, area.y + 170);
+  await page.mouse.up();
+  await page.getByTestId("crop-zoom").fill("1.5");
+  await page.getByTestId("crop-save").click();
+  await page.waitForTimeout(400);
+  check("a cropped photo is saved", (await page.locator(`${P} .photo img`).first().getAttribute("src")).startsWith("data:image/jpeg"), true);
+
+  /* dates come from a picker and follow the chosen format */
+  await page.locator(`${P} [data-date$=":start"]`).first().click();
+  await page.getByTestId("date-year").fill("2019");
+  await page.locator('[data-month="7"]').click();
+  await page.waitForTimeout(250);
+  check("a picked date shows on the page", await page.locator(`${P} .e-date`).first().innerText(), (t) => t.startsWith("Jul 2019"));
+  await page.getByTestId("tb-page").click();
+  await page.locator('[data-testid=date-format] [data-value="mm/yyyy"]').click();
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(250);
+  check("the date format applies everywhere", await page.locator(`${P} .e-date`).first().innerText(), (t) => t.startsWith("07/2019"));
+
+  /* ATS checker */
+  await tool("ats");
+  await page.getByTestId("ats-input").fill("Marketing manager with positioning, pricing, Salesforce and HubSpot experience. Salesforce and HubSpot skills essential.");
+  await page.waitForTimeout(300);
+  check("the ATS checker finds missing keywords", await page.getByTestId("ats-missing").innerText(), (t) => t.toLowerCase().includes("salesforce"));
+  check("and ones already in the CV", await page.getByTestId("ats-found").innerText(), (t) => t.toLowerCase().includes("positioning"));
+  await tool("ats");
+
   /* phrases go into the job being edited */
   await caretToEnd(page.locator(`${P} [data-path^="bul:"]`).first());
   await tool("phrases");
@@ -314,6 +352,16 @@ try {
   const lt = await text();
   check("an old .cvjson imports with its content", lt.includes("Jordan Blake") && lt.includes("Rowland Building") && lt.includes("Tested circuits."), true);
   check("old bold text stays bold", await page.locator(`${P} .summary b`).first().innerText(), "seven years");
+
+  /* example content suits the role */
+  await page.goto(BASE + "/dashboard");
+  await page.getByTestId("new-cv").click();
+  await page.locator('[data-cat="tech"]').click();
+  await page.locator('[role=dialog] [data-template="silicon"]').click();
+  await page.getByTestId("new-create").click();
+  await page.waitForURL(/\/editor\//);
+  await page.locator(`${P} > .cv-page`).first().waitFor();
+  check("a tech template starts with a tech example", (await text()).includes("Software Engineer"), true);
 
   /* blank CV */
   await page.goto(BASE + "/dashboard");

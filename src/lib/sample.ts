@@ -1,4 +1,5 @@
-import { defaultColumn, getTemplate } from "./templates";
+import { PERSONAS } from "./personas";
+import { defaultColumn, getTemplate, type Persona } from "./templates";
 import type { Cv, CvData, Design, Entry, EntryFields, Item, Section, SectionType, TemplateId } from "./types";
 
 export function uid(prefix = ""): string {
@@ -23,6 +24,13 @@ export const SECTION_LABELS: Record<SectionType, { title: string; hint: string; 
   volunteering: { title: "Volunteering", hint: "Unpaid roles and community work", kind: "entries" },
   strengths: { title: "Strengths", hint: "What sets you apart, in a few words each", kind: "entries" },
   publications: { title: "Publications", hint: "Articles, papers and talks", kind: "entries" },
+  softSkills: { title: "Soft Skills", hint: "Personal qualities such as teamwork or composure", kind: "items" },
+  organizations: { title: "Organisations", hint: "Boards, committees and memberships", kind: "entries" },
+  conferences: { title: "Conferences", hint: "Talks given and events attended", kind: "entries" },
+  teaching: { title: "Teaching Experience", hint: "Courses taught and students supported", kind: "entries" },
+  freelance: { title: "Freelance Projects", hint: "Client work outside a regular job", kind: "entries" },
+  testimonials: { title: "Testimonials", hint: "Short quotes from people you worked with", kind: "entries" },
+  honors: { title: "Honours and Awards", hint: "Scholarships, prizes and distinctions", kind: "entries" },
   interests: { title: "Interests", hint: "Hobbies that say something about you", kind: "items" },
   references: { title: "References", hint: "People who will vouch for you", kind: "entries" },
   custom: { title: "Custom Section", hint: "Anything else, with your own title", kind: "entries" },
@@ -39,6 +47,12 @@ const FIELDS: Partial<Record<SectionType, EntryFields>> = {
   strengths: { subtitle: false, location: false, dates: false, description: true, bullets: false },
   publications: { subtitle: true, location: false, dates: true, description: false, bullets: false },
   references: { subtitle: true, location: false, dates: false, description: true, bullets: false },
+  organizations: { subtitle: true, location: false, dates: true, description: false, bullets: false },
+  conferences: { subtitle: true, location: true, dates: true, description: false, bullets: false },
+  teaching: { subtitle: true, location: true, dates: true, description: false, bullets: true },
+  freelance: { subtitle: true, location: false, dates: true, description: true, bullets: true },
+  testimonials: { subtitle: true, location: false, dates: false, description: true, bullets: false },
+  honors: { subtitle: true, location: false, dates: true, description: false, bullets: false },
   custom: { subtitle: true, location: false, dates: true, description: true, bullets: false },
 };
 
@@ -99,132 +113,80 @@ export function designFor(template: TemplateId, base?: Partial<Design>): Design 
     showIcons: true,
     headingIcons: t.defaults.headingIcons,
     backdrop: t.defaults.backdrop,
+    dateFormat: "mon yyyy",
     ...base,
   };
 }
 
-/**
- * The example CV. Nobody real: the email is on the reserved example.com
- * domain and the phone number sits in the 07700 900000 block Ofcom keeps
- * aside for drama, so neither can reach a person.
- */
-export function sampleData(): CvData {
+/** a worked example for a kind of job; see personas.ts */
+export function sampleData(persona: Persona = "marketing"): CvData {
+  const p = PERSONAS[persona] ?? PERSONAS.marketing;
   return {
     personal: {
-      fullName: "Alex Morgan",
-      jobTitle: "Senior Product Marketing Manager",
+      fullName: p.name,
+      jobTitle: p.title,
       photo: "/sample-photo.jpg",
-      details: [
-        { id: uid("d_"), icon: "email", value: "alex.morgan@example.com" },
-        { id: uid("d_"), icon: "phone", value: "+44 7700 900461" },
-        { id: uid("d_"), icon: "location", value: "Manchester, United Kingdom" },
-        { id: uid("d_"), icon: "linkedin", value: "linkedin.com/in/alexmorgan" },
-        { id: uid("d_"), icon: "website", value: "alexmorgan.example.com" },
-      ],
+      details: p.details.map(([icon, value]) => ({ id: uid("d_"), icon, value })),
     },
-    sections: [
-      newSection("summary", {
-        text: "Product marketer with <b>eight years</b> taking B2B software to market, from positioning and pricing to launch and sales enablement. I turn customer research into clear stories that sales teams can use, and I measure everything against pipeline and revenue.",
-      }),
-      newSection("experience", {
-        entries: [
-          newEntry({
-            title: "Senior Product Marketing Manager", subtitle: "Brightline Software", location: "Manchester",
-            startDate: "03/2021", current: true,
-            bullets: [
-              "Led go to market for four product lines with combined annual revenue of <b>£14m</b>.",
-              "Rebuilt positioning after 60 customer interviews, lifting demo to close rate by <b>18%</b>.",
-              "Launched a usage based pricing tier that brought in 900 new accounts in its first year.",
-              "Built the sales enablement programme: battlecards, demo scripts and a monthly win loss review.",
-            ],
-          }),
-          newEntry({
-            title: "Product Marketing Manager", subtitle: "Northwind Analytics", location: "Leeds",
-            startDate: "06/2018", endDate: "02/2021",
-            bullets: [
-              "Owned launches for the reporting suite, coordinating product, sales, support and design.",
-              "Grew the case study programme from 3 to 28 published customer stories.",
-              "Ran pricing research with 400 customers that informed a 12% average price increase.",
-            ],
-          }),
-          newEntry({
-            title: "Marketing Executive", subtitle: "Fern & Co Digital", location: "Manchester",
-            startDate: "09/2016", endDate: "05/2018",
-            bullets: [
-              "Planned and ran email and paid social campaigns for twelve retail and software clients.",
-              "Cut cost per lead by 35% for the largest client by rebuilding audience targeting.",
-            ],
-          }),
-        ],
-      }),
-      newSection("education", {
-        entries: [
-          newEntry({
-            title: "BA (Hons) Marketing and Business", subtitle: "University of Leeds", location: "Leeds",
-            startDate: "2013", endDate: "2016",
-            description: "First class honours. Dissertation on pricing psychology in subscription software.",
-          }),
-        ],
-      }),
-      newSection("awards", {
-        entries: [
-          newEntry({ title: "Launch of the Year 2023", description: "Company award for the usage based pricing launch." }),
-          newEntry({ title: "Top 10 Women in SaaS Marketing", description: "Named by an industry newsletter for the north of England." }),
-        ],
-      }),
-      newSection("skills", {
-        items: [
-          newItem("Positioning", 5), newItem("Go to market", 5), newItem("Pricing", 4),
-          newItem("Customer research", 4), newItem("Sales enablement", 4), newItem("SQL and analytics", 3),
-        ],
-      }),
-      newSection("certificates", {
-        entries: [
-          newEntry({ title: "Product Marketing Core", subtitle: "Product Marketing Alliance", endDate: "2022" }),
-          newEntry({ title: "Google Analytics Certification", subtitle: "Google", endDate: "2020" }),
-        ],
-      }),
-      newSection("languages", {
-        items: [newItem("English", 5), newItem("Spanish", 4), newItem("German", 2)],
-      }),
-      newSection("interests", {
-        items: [newItem("Fell running"), newItem("Mentoring"), newItem("Film photography")],
-      }),
-    ],
+    sections: p.sections.map((x) => newSection(x.type, {
+      ...(x.title ? { title: x.title } : {}),
+      text: x.text ?? "",
+      entries: (x.entries ?? []).map((e) => newEntry({
+        title: e.title, subtitle: e.subtitle ?? "", location: e.location ?? "", startDate: e.start ?? "",
+        endDate: e.end ?? "", current: !!e.current, description: e.description ?? "", bullets: e.bullets ?? [],
+      })),
+      items: (x.items ?? []).map(([n, l]) => newItem(n, l)),
+    })).map((sec) => {
+      /* show what the example fills in */
+      if (sec.entries.some((e) => e.description)) sec.fields.description = true;
+      if (sec.entries.some((e) => e.bullets.length)) sec.fields.bullets = true;
+      return sec;
+    }),
   };
 }
 
+/**
+ * A blank CV: the same shape as an example, with every field empty so the
+ * placeholders show where things go.
+ */
 export function blankData(): CvData {
+  const entry = (type: SectionType) => newEntry({ bullets: defaultFields(type).bullets ? ["", ""] : [] });
   return {
     personal: {
       fullName: "",
       jobTitle: "",
       photo: "",
-      details: [
-        { id: uid("d_"), icon: "email", value: "" },
-        { id: uid("d_"), icon: "phone", value: "" },
-        { id: uid("d_"), icon: "location", value: "" },
-      ],
+      details: (["email", "phone", "location", "linkedin"] as const).map((icon) => ({ id: uid("d_"), icon, value: "" })),
     },
     sections: [
       newSection("summary"),
-      newSection("experience"),
-      newSection("education"),
-      newSection("skills", { items: [newItem("", 3), newItem("", 3), newItem("", 3)] }),
-      newSection("languages"),
+      newSection("experience", { entries: [entry("experience"), entry("experience")] }),
+      newSection("education", { entries: [entry("education")] }),
+      newSection("skills", { items: [newItem("", 3), newItem("", 3), newItem("", 3), newItem("", 3)] }),
+      newSection("languages", { items: [newItem("", 5), newItem("", 3)] }),
+      newSection("certificates", { entries: [entry("certificates")] }),
     ],
   };
 }
 
-export function makeCv(opts: { title?: string; template?: TemplateId; start?: "example" | "blank" } = {}): Cv {
+/** put sections in the order a template prefers, keeping any it does not mention at the end */
+function ordered(data: CvData, order?: SectionType[]): CvData {
+  if (!order) return data;
+  const rank = (t: SectionType) => { const i = order.indexOf(t); return i < 0 ? 99 : i; };
+  return { ...data, sections: [...data.sections].sort((a, b) => rank(a.type) - rank(b.type)) };
+}
+
+export function makeCv(opts: { title?: string; template?: TemplateId; start?: "example" | "blank"; persona?: Persona } = {}): Cv {
   const now = Date.now();
+  const tpl = getTemplate(opts.template ?? "pulse");
+  const data = opts.start === "blank" ? blankData() : sampleData(opts.persona ?? tpl.persona);
   return {
     id: uid("cv_"),
     title: opts.title?.trim() || (opts.start === "blank" ? "Untitled CV" : "My CV"),
     createdAt: now,
     updatedAt: now,
     schema: 2,
-    data: opts.start === "blank" ? blankData() : sampleData(),
-    design: designFor(opts.template ?? "pulse"),
+    data: ordered(data, tpl.order),
+    design: designFor(tpl.id),
   };
 }

@@ -14,7 +14,7 @@ import { IconButton, cx, inputCls } from "@/components/ui";
 import { PHRASES } from "@/lib/phrases";
 import { SECTION_LABELS, designFor, newSection, uid } from "@/lib/sample";
 import { checkCv } from "@/lib/score";
-import { TEMPLATES, getTemplate } from "@/lib/templates";
+import { CATEGORIES, TEMPLATES, getTemplate, type Category } from "@/lib/templates";
 import type { Cv, DetailIcon, Section, SectionType, TemplateId } from "@/lib/types";
 import { useEditor } from "./context";
 
@@ -134,23 +134,6 @@ export const DETAIL_KINDS: { icon: DetailIcon; label: string; placeholder: strin
   { icon: "star", label: "Highlight", placeholder: "Security cleared" },
   { icon: "user", label: "Other", placeholder: "Anything else" },
 ];
-
-export function readPhoto(f: File, done: (url: string) => void) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    const img = new Image();
-    img.onload = () => {
-      /* square crop from the centre, 480px, so local storage stays small */
-      const side = Math.min(img.width, img.height), size = Math.min(480, side);
-      const c = document.createElement("canvas");
-      c.width = c.height = size;
-      c.getContext("2d")!.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
-      done(c.toDataURL("image/jpeg", 0.88));
-    };
-    img.src = reader.result as string;
-  };
-  reader.readAsDataURL(f);
-}
 
 export function PersonalDrawer({ onPhoto }: { onPhoto: () => void }) {
   const { cv, update } = useEditor();
@@ -310,7 +293,7 @@ export function PhrasesDrawer() {
 
 export function TemplatesDrawer() {
   const { cv, update } = useEditor();
-  const [filter, setFilter] = useState<"all" | "premium" | "photo" | "ats" | "one">("all");
+  const [filter, setFilter] = useState<"all" | "premium" | Category>("all");
   const previews = useMemo(
     () => Object.fromEntries(TEMPLATES.map((t) => [t.id, {
       ...cv,
@@ -318,12 +301,7 @@ export function TemplatesDrawer() {
     } satisfies Cv])) as Record<TemplateId, Cv>,
     [cv],
   );
-  const list = TEMPLATES.filter((t) =>
-    filter === "all" ? true
-      : filter === "premium" ? t.premium
-        : filter === "photo" ? t.tags.includes("Photo")
-          : filter === "ats" ? t.tags.includes("ATS friendly")
-            : t.layout === "single");
+  const list = TEMPLATES.filter((t) => filter === "all" ? true : filter === "premium" ? t.premium : t.categories.includes(filter));
 
   const choose = (id: TemplateId) =>
     update((d) => {
@@ -334,7 +312,7 @@ export function TemplatesDrawer() {
   return (
     <div data-testid="templates-drawer">
       <div className="mb-4 flex flex-wrap gap-1.5">
-        {([["all", "All"], ["premium", "Premium"], ["photo", "With photo"], ["ats", "ATS friendly"], ["one", "One column"]] as const).map(([k, l]) => (
+        {([["all", "All"], ["premium", "Premium"], ...CATEGORIES.map((c) => [c.id, c.name])] as [typeof filter, string][]).map(([k, l]) => (
           <button key={k} type="button" onClick={() => setFilter(k)}
             className={cx("rounded-full px-3 py-1 text-xs font-medium cursor-pointer", filter === k ? "bg-ink text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}>{l}</button>
         ))}
@@ -358,6 +336,80 @@ export function TemplatesDrawer() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ---------------- ATS checker ---------------- */
+
+const STOP = new Set(("a about above after again all also am an and any are as at be because been before being below between both but by can could did do does doing down during each few for from further had has have having he her here hers him his how i if in into is it its itself just me more most my no nor not of off on once only or other our ours out over own same she should so some such than that the their them then there these they this those through to too under until up very was we were what when where which while who whom why will with would you your yours "
+  + "hiring hire essential opportunity salary benefits apply role's job role team work working company candidate candidates experience years year ability strong excellent good great new including within across ensure ensuring responsible responsibilities required requirements preferred plus etc us our we'll you'll you're will must able join looking seeking based help day days per across key well using use").split(" "));
+
+function keywords(text: string): string[] {
+  const words = text.toLowerCase().replace(/[^a-z0-9+#.\s-]/g, " ").split(/\s+/).map((w) => w.replace(/^[-.]+|[-.]+$/g, "")).filter((w) => w.length > 2 && !STOP.has(w) && !/^\d+$/.test(w));
+  const count = new Map<string, number>();
+  words.forEach((w) => count.set(w, (count.get(w) ?? 0) + 1));
+  for (let i = 0; i < words.length - 1; i++) {
+    const bi = words[i] + " " + words[i + 1];
+    count.set(bi, (count.get(bi) ?? 0) + 1.5);
+  }
+  return [...count.entries()]
+    .filter(([k, n]) => (k.includes(" ") ? n >= 3 : n >= 1))
+    .sort((a, b) => b[1] - a[1])
+    .map(([k]) => k)
+    .filter((k, i, all) => !all.slice(0, i).some((o) => o.includes(" ") && o.split(" ").includes(k)))
+    .slice(0, 24);
+}
+
+export function AtsDrawer() {
+  const { cv } = useEditor();
+  const [ad, setAd] = useState("");
+  const tpl = getTemplate(cv.design.template);
+  const cvText = useMemo(() => {
+    const p = cv.data.personal;
+    const parts = [p.fullName, p.jobTitle, ...cv.data.sections.filter((s) => !s.hidden).flatMap((s) => [s.title, s.text, ...s.items.map((i) => i.name), ...s.entries.flatMap((e) => [e.title, e.subtitle, e.description, ...e.bullets])])];
+    return parts.join(" ").replace(/<[^>]+>/g, " ").toLowerCase();
+  }, [cv]);
+  const words = useMemo(() => keywords(ad), [ad]);
+  const found = words.filter((w) => cvText.includes(w));
+  const missing = words.filter((w) => !cvText.includes(w));
+  const pct = words.length ? Math.round((found.length / words.length) * 100) : 0;
+  const layout = cv.design.layout ?? tpl.layout;
+  const tips = [
+    { ok: layout === "single", text: layout === "single" ? "One column layout: the safest choice for older tracking systems." : "Two column layout: modern systems read it fine; for strict ones, try a one column template." },
+    { ok: cv.data.personal.details.some((d) => d.icon === "email" && d.value) && cv.data.personal.details.some((d) => d.icon === "phone" && d.value), text: "Email and phone are in the header as text." },
+    { ok: cv.data.sections.some((s) => s.type === "experience" && !s.hidden) && cv.data.sections.some((s) => s.type === "education" && !s.hidden), text: "Standard Experience and Education sections are present." },
+    { ok: true, text: "Your PDF is real, selectable text, so systems can read every word." },
+  ];
+  return (
+    <div data-testid="ats-drawer">
+      <p className="mb-2 text-[13px] text-slate-500">Paste the job advert. We will pick out its key words and show which ones your CV already uses.</p>
+      <textarea className={cx(inputCls, "h-36 resize-y")} value={ad} onChange={(e) => setAd(e.target.value)} placeholder="Paste the job description here" data-testid="ats-input" />
+      {words.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-3 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+            <span className={cx("text-2xl font-bold", pct >= 70 ? "text-emerald-600" : pct >= 45 ? "text-amber-600" : "text-red-600")} data-testid="ats-score">{pct}%</span>
+            <span className="text-[13px] text-slate-600">of the advert&apos;s key words appear in your CV. Aim for 70% or more, using the words honestly where they fit.</span>
+          </div>
+          {missing.length > 0 && <>
+            <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Missing</h4>
+            <div className="mb-3 flex flex-wrap gap-1.5" data-testid="ats-missing">{missing.map((w) => <span key={w} className="rounded-full bg-red-50 px-2.5 py-1 text-xs text-red-700 ring-1 ring-red-200">{w}</span>)}</div>
+          </>}
+          {found.length > 0 && <>
+            <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Already in your CV</h4>
+            <div className="flex flex-wrap gap-1.5" data-testid="ats-found">{found.map((w) => <span key={w} className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs text-emerald-700 ring-1 ring-emerald-200">{w}</span>)}</div>
+          </>}
+        </div>
+      )}
+      <h4 className="mb-2 mt-6 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Format</h4>
+      <ul className="space-y-2">
+        {tips.map((t) => (
+          <li key={t.text} className="flex gap-2 text-[13px]">
+            {t.ok ? <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-600" /> : <Circle className="mt-0.5 h-4 w-4 flex-none text-amber-500" />}
+            {t.text}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

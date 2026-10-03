@@ -3,12 +3,14 @@
 import type React from "react";
 import type { ReactNode } from "react";
 import {
-  ArrowDown, ArrowLeftRight, ArrowUp, AtSign, BadgeCheck, BookOpen, Briefcase, Calendar, Car, Code2, EyeOff, Flag,
-  FolderKanban, Globe, GraduationCap, HandHeart, Heart, Languages, MapPin, Newspaper, Phone, Plus, Settings2, Star,
-  Trash2, Trophy, User, Users, Wrench, X, Zap, type LucideProps,
+  ArrowDown, ArrowLeftRight, ArrowUp, AtSign, Award, BadgeCheck, BookOpen, Briefcase, Building2, Calendar, Car, Code2,
+  EyeOff, Flag, FolderKanban, Globe, GraduationCap, HandHeart, Heart, Languages, Laptop, MapPin, Mic, Newspaper, Phone,
+  Plus, Presentation, Quote, Settings2, Smile, Star, Trash2, Trophy, User, Users, Wrench, X, Zap, type LucideProps,
 } from "lucide-react";
 import type { TemplateDef } from "@/lib/templates";
-import type { Cv, Detail, DetailIcon, Entry, Item, Section, SectionType } from "@/lib/types";
+import { formatDate } from "@/lib/dates";
+import { kindOf } from "@/lib/sample";
+import type { Cv, DateFormat, Detail, DetailIcon, Entry, Item, Section, SectionType } from "@/lib/types";
 import { Ed, splitAtCaret, useEdit } from "./edit";
 
 /**
@@ -46,14 +48,16 @@ export const SECTION_ICONS: Record<SectionType, (p: LucideProps) => React.ReactN
   summary: User, experience: Briefcase, education: GraduationCap, skills: Wrench, languages: Languages,
   projects: FolderKanban, certificates: BadgeCheck, courses: BookOpen, awards: Trophy, volunteering: HandHeart,
   strengths: Zap, publications: Newspaper, interests: Heart, references: Users, custom: Star,
+  softSkills: Smile, organizations: Building2, conferences: Mic, teaching: Presentation, freelance: Laptop,
+  testimonials: Quote, honors: Award,
 };
 
 export const LEVEL_LABELS = ["", "Beginner", "Elementary", "Intermediate", "Advanced", "Expert"];
 export const LANGUAGE_LABELS = ["", "Basic", "Conversational", "Proficient", "Fluent", "Native"];
 
-export function dateRange(e: Entry): string {
-  const end = e.current ? "Present" : e.endDate.trim();
-  const start = e.startDate.trim();
+export function dateRange(e: Entry, fmt: DateFormat = "mon yyyy"): string {
+  const end = e.current ? "Present" : formatDate(e.endDate, fmt);
+  const start = formatDate(e.startDate, fmt);
   if (start && end) return `${start} – ${end}`;
   return start || end;
 }
@@ -73,7 +77,7 @@ function SectionBar({ s, cv, tpl }: { s: Section; cv: Cv; tpl: TemplateDef }) {
   const ed = useEdit();
   if (!ed?.on || ed.measure) return null;
   const twoCols = (cv.design.layout ?? tpl.layout) !== "single";
-  const kind = s.type === "summary" ? "text" : s.items.length || ["skills", "languages", "interests"].includes(s.type) ? "items" : "entries";
+  const kind = kindOf(s.type);
   return (
     <div className="edit-ui sec-bar" data-testid="section-bar">
       {kind !== "text" && (
@@ -168,22 +172,41 @@ const SUB_PH: Partial<Record<SectionType, string>> = {
   experience: "Company", education: "School or university", projects: "Your role", certificates: "Issued by",
   courses: "Provider", volunteering: "Organisation", publications: "Publisher", references: "Job title and company",
 };
-const SINGLE_DATE: SectionType[] = ["certificates", "awards", "publications"];
+const SINGLE_DATE: SectionType[] = ["certificates", "awards", "publications", "honors"];
 
-function Dates({ s, e, editing }: { s: Section; e: Entry; editing: boolean }) {
-  const p = (k: string) => `ent:${s.id}:${e.id}:${k}`;
-  if (!s.fields.dates || (!editing && !dateRange(e))) return null;
-  if (SINGLE_DATE.includes(s.type)) return <span className="e-date"><Ed path={p("endDate")} value={e.endDate} ph="Date" /></span>;
+/** dates open a picker in the editor; elsewhere they are plain text */
+function DateText({ s, e, which, fmt }: { s: Section; e: Entry; which: "start" | "end"; fmt: DateFormat }) {
+  const ed = useEdit();
+  const raw = which === "start" ? e.startDate : e.endDate;
+  const text = which === "end" && e.current ? "Present" : formatDate(raw, fmt);
+  const live = !!ed?.on && !ed.measure;
+  if (!ed?.on) return text ? <span>{text}</span> : null;
+  return (
+    <span
+      className={"ed-date" + (text ? "" : " empty")}
+      data-ph={which === "start" ? "Start" : SINGLE_DATE.includes(s.type) ? "Date" : "End"}
+      role={live ? "button" : undefined}
+      tabIndex={live ? 0 : undefined}
+      data-date={live ? `${s.id}:${e.id}:${which}` : undefined}
+      onMouseDown={live ? (ev) => ev.preventDefault() : undefined}
+      onClick={live ? (ev) => { ev.stopPropagation(); ed.act({ t: "datePicker", sid: s.id, eid: e.id, which, anchor: ev.currentTarget.getBoundingClientRect() }); } : undefined}
+    >{text}</span>
+  );
+}
+
+function Dates({ s, e, editing, fmt }: { s: Section; e: Entry; editing: boolean; fmt: DateFormat }) {
+  if (!s.fields.dates || (!editing && !dateRange(e, fmt))) return null;
+  if (SINGLE_DATE.includes(s.type)) return <span className="e-date"><DateText s={s} e={e} which="end" fmt={fmt} /></span>;
   return (
     <span className="e-date">
-      <Ed path={p("startDate")} value={e.startDate} ph="Start" />
+      <DateText s={s} e={e} which="start" fmt={fmt} />
       {(editing || (e.startDate && (e.endDate || e.current))) && <span className="e-dash"> – </span>}
-      {e.current ? <span>Present</span> : <Ed path={p("endDate")} value={e.endDate} ph="End" />}
+      <DateText s={s} e={e} which="end" fmt={fmt} />
     </span>
   );
 }
 
-function EntryHead({ s, e, tpl, editing }: { s: Section; e: Entry; tpl: TemplateDef; editing: boolean }) {
+function EntryHead({ s, e, tpl, editing, fmt }: { s: Section; e: Entry; tpl: TemplateDef; editing: boolean; fmt: DateFormat }) {
   const f = s.fields;
   const p = (k: string) => `ent:${s.id}:${e.id}:${k}`;
   const gutter = tpl.entryStyle === "gutter";
@@ -193,17 +216,17 @@ function EntryHead({ s, e, tpl, editing }: { s: Section; e: Entry; tpl: Template
     <>
       <div className="e-top">
         <Ed path={p("title")} value={e.title} ph={TITLE_PH[s.type] ?? "Title"} className="e-title" />
-        {!gutter && <Dates s={s} e={e} editing={editing} />}
+        {!gutter && <Dates s={s} e={e} editing={editing} fmt={fmt} />}
       </div>
       {(sub || loc) && <div className="e-sub">{sub}{sub && loc && <span className="e-sep" />}{loc}</div>}
     </>
   );
 }
 
-function EntryView({ s, e, tpl, lines, editing, head }: { s: Section; e: Entry; tpl: TemplateDef; lines: Line[]; editing: boolean; head?: ReactNode }) {
+function EntryView({ s, e, tpl, lines, editing, head, fmt }: { s: Section; e: Entry; tpl: TemplateDef; lines: Line[]; editing: boolean; head?: ReactNode; fmt: DateFormat }) {
   const body = (
     <>
-      <EntryHead s={s} e={e} tpl={tpl} editing={editing} />
+      <EntryHead s={s} e={e} tpl={tpl} editing={editing} fmt={fmt} />
       {lines.length > 0 && <div className="e-desc"><Lines s={s} e={e} lines={lines} /></div>}
     </>
   );
@@ -213,7 +236,7 @@ function EntryView({ s, e, tpl, lines, editing, head }: { s: Section; e: Entry; 
         {head}
         <div className="entry gutter">
           <div className="e-when">
-            <Dates s={s} e={e} editing={editing} />
+            <Dates s={s} e={e} editing={editing} fmt={fmt} />
             {s.fields.location && (editing || e.location) && <Ed as="div" path={`ent:${s.id}:${e.id}:location`} value={e.location} ph="City" className="e-loc" />}
           </div>
           <div className="e-main">{body}</div>
@@ -264,7 +287,7 @@ function ItemsBlock({ s, cv }: { s: Section; cv: Cv }) {
   const editing = !!ed?.on;
   const live = editing && !ed!.measure;
   const base = cv.design.skillStyle;
-  const style = s.type === "interests" ? "tags" : base;
+  const style = s.type === "interests" || s.type === "softSkills" ? "tags" : base;
   const items = s.items.filter((i) => editing || i.name.trim());
   const labels = s.type === "languages" ? LANGUAGE_LABELS : LEVEL_LABELS;
   const name = (it: Item) => (
@@ -370,12 +393,14 @@ export function Identity({ cv }: { cv: Cv }) {
 
 /** the full width header used by "top" and "banner" templates */
 export function Header({ cv, tpl }: { cv: Cv; tpl: TemplateDef }) {
+  const summary = tpl.summaryInHeader ? cv.data.sections.find((x) => x.type === "summary" && !x.hidden) : undefined;
   return (
-    <header className={"cv-head" + (tpl.header === "banner" ? " banner" : "")}>
+    <header className={"cv-head" + (tpl.header === "banner" ? " banner" : "") + (summary ? " with-summary" : "")}>
       <span className="monogram" aria-hidden><span>{initials(cv.data.personal.fullName)}</span></span>
       <Photo cv={cv} />
       <div className="head-text">
         <Identity cv={cv} />
+        {summary && <Ed as="div" className="head-summary" path={`sec:${summary.id}:text`} value={summary.text} rich ph="Two to four lines on who you are and what you bring." />}
         <DetailsList details={cv.data.personal.details} icons={cv.design.showIcons} />
       </div>
       <svg className="head-wave" viewBox="0 0 800 60" preserveAspectRatio="none" aria-hidden>
@@ -398,8 +423,11 @@ export function buildBlocks(cv: Cv, tpl: TemplateDef, editing: boolean): Block[]
     out.push({ key: "contacts", column: "side", node: <div className="side-contacts"><DetailsList details={cv.data.personal.details} icons={cv.design.showIcons} /></div> });
   }
 
+  const summaryUp = tpl.summaryInHeader && !(tpl.header === "side" && hasSide);
+  let summarySkipped = false;
   for (const s of cv.data.sections) {
     if (s.hidden) continue;
+    if (summaryUp && s.type === "summary" && !summarySkipped) { summarySkipped = true; continue; }
     const column = col(s);
     const head = <Heading s={s} cv={cv} tpl={tpl} />;
     const base = { column, sectionId: s.id } as const;
@@ -407,7 +435,7 @@ export function buildBlocks(cv: Cv, tpl: TemplateDef, editing: boolean): Block[]
 
     if (s.type === "summary") {
       out.push({ ...base, key: s.id, node: <div className="sec">{head}<Ed as="div" className="summary" path={`sec:${s.id}:text`} value={s.text} rich ph="Two to four lines on who you are and what you bring." /></div> });
-    } else if (s.items.length || ["skills", "languages", "interests"].includes(s.type)) {
+    } else if (kindOf(s.type) === "items") {
       out.push({ ...base, key: s.id, node: <div className="sec">{head}<ItemsBlock s={s} cv={cv} /></div> });
     } else if (!s.entries.length) {
       out.push({ ...base, key: s.id, node: <div className="sec">{head}</div> });
@@ -421,8 +449,8 @@ export function buildBlocks(cv: Cv, tpl: TemplateDef, editing: boolean): Block[]
           key: `${s.id}:${e.id}`,
           entryStart: i > 0,
           node: (
-            <div className={i === 0 ? "sec" : "sec-part"}>
-              <EntryView s={s} e={e} tpl={tpl} lines={lines.slice(0, cut)} editing={editing} head={i === 0 ? head : undefined} />
+            <div className={(i === 0 ? "sec" : "sec-part") + " t-" + s.type}>
+              <EntryView s={s} e={e} tpl={tpl} lines={lines.slice(0, cut)} editing={editing} head={i === 0 ? head : undefined} fmt={cv.design.dateFormat ?? "mon yyyy"} />
             </div>
           ),
         });

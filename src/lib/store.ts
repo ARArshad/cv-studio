@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { normaliseCv } from "./io";
 import { makeCv, uid } from "./sample";
+import type { Persona } from "./templates";
 import type { Cv, CvData, Design, TemplateId } from "./types";
 
 /**
@@ -24,7 +25,7 @@ interface LibraryState {
   future: Snapshot[];
   historyFor: string | null;
 
-  createCv: (opts?: { title?: string; template?: TemplateId; start?: "example" | "blank" }) => string;
+  createCv: (opts?: { title?: string; template?: TemplateId; start?: "example" | "blank"; persona?: Persona }) => string;
   addCv: (cv: Cv) => string;
   duplicateCv: (id: string) => string | null;
   renameCv: (id: string, title: string) => void;

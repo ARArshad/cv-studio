@@ -1,6 +1,6 @@
 import type { FontKey } from "./types";
 
-export const FONTS: { key: FontKey; name: string; css: string; kind: "Sans" | "Serif" }[] = [
+export const FONTS: { key: FontKey; name: string; css: string; kind: "Sans" | "Serif" | "Mono" }[] = [
   { key: "inter", name: "Inter", css: "var(--f-inter), system-ui, sans-serif", kind: "Sans" },
   { key: "lato", name: "Lato", css: "var(--f-lato), system-ui, sans-serif", kind: "Sans" },
   { key: "roboto", name: "Roboto", css: "var(--f-roboto), system-ui, sans-serif", kind: "Sans" },
@@ -19,6 +19,7 @@ export const FONTS: { key: FontKey; name: string; css: string; kind: "Sans" | "S
   { key: "ebGaramond", name: "EB Garamond", css: "var(--f-eb-garamond), Georgia, serif", kind: "Serif" },
   { key: "crimson", name: "Crimson Pro", css: "var(--f-crimson), Georgia, serif", kind: "Serif" },
   { key: "libreBaskerville", name: "Libre Baskerville", css: "var(--f-libre-baskerville), Georgia, serif", kind: "Serif" },
+  { key: "jetbrainsMono", name: "JetBrains Mono", css: "var(--f-jetbrains-mono), ui-monospace, monospace", kind: "Mono" },
 ];
 
 export function fontCss(key: FontKey): string {
