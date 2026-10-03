@@ -3,7 +3,7 @@
 import type React from "react";
 import type { ReactNode } from "react";
 import {
-  ArrowDown, ArrowLeftRight, ArrowUp, AtSign, Award, BadgeCheck, BookOpen, Briefcase, Building2, Calendar, Car, Code2,
+  ArrowDown, ArrowLeftRight, ArrowUp, AtSign, Award, Bookmark, BadgeCheck, BookOpen, Briefcase, Building2, Calendar, Car, Code2,
   EyeOff, Flag, FolderKanban, Globe, GraduationCap, HandHeart, Heart, Languages, Laptop, MapPin, Mic, Newspaper, Phone,
   Plus, Presentation, Quote, Settings2, Smile, Star, Trash2, Trophy, User, Users, Wrench, X, Zap, type LucideProps,
 } from "lucide-react";
@@ -11,7 +11,7 @@ import type { TemplateDef } from "@/lib/templates";
 import { formatDate } from "@/lib/dates";
 import { kindOf } from "@/lib/sample";
 import type { Cv, DateFormat, Detail, DetailIcon, Entry, Item, Section, SectionType } from "@/lib/types";
-import { Ed, splitAtCaret, useEdit } from "./edit";
+import { Ed, Mark, splitAtCaret, useEdit } from "./edit";
 
 /**
  * Turns a CV into small blocks that pagination can move between pages:
@@ -103,6 +103,7 @@ function EntryBar({ s, e }: { s: Section; e: Entry }) {
       {s.fields.bullets && <Tool label="Add bullet" onClick={() => ed.act({ t: "addBullet", sid: s.id, eid: e.id })}><span className="tb-txt">•+</span></Tool>}
       <Tool label="Move up" onClick={() => ed.act({ t: "moveEntry", sid: s.id, eid: e.id, dir: -1 })}><ArrowUp /></Tool>
       <Tool label="Move down" onClick={() => ed.act({ t: "moveEntry", sid: s.id, eid: e.id, dir: 1 })}><ArrowDown /></Tool>
+      <Tool label="Save to my saved content" onClick={() => ed.act({ t: "saveEntry", sid: s.id, eid: e.id })}><Bookmark /></Tool>
       <Tool label="Show or hide parts" onClick={(ev) => ed.act({ t: "entryMenu", sid: s.id, eid: e.id, anchor: ev.currentTarget.getBoundingClientRect() })}><Settings2 /></Tool>
       <Tool label="Delete entry" danger onClick={() => ed.act({ t: "delEntry", sid: s.id, eid: e.id })}><Trash2 /></Tool>
     </div>
@@ -128,6 +129,7 @@ function BulletLine({ s, e, i }: { s: Section; e: Entry; i: number }) {
   const ed = useEdit();
   return (
     <li>
+      <Mark path={`bul:${s.id}:${e.id}:${i}`} />
       <Ed
         path={`bul:${s.id}:${e.id}:${i}`}
         value={e.bullets[i] ?? ""}
@@ -215,6 +217,7 @@ function EntryHead({ s, e, tpl, editing, fmt }: { s: Section; e: Entry; tpl: Tem
   return (
     <>
       <div className="e-top">
+        <Mark path={p("title")} />
         <Ed path={p("title")} value={e.title} ph={TITLE_PH[s.type] ?? "Title"} className="e-title" />
         {!gutter && <Dates s={s} e={e} editing={editing} fmt={fmt} />}
       </div>
@@ -352,6 +355,7 @@ export function DetailsList({ details, icons }: { details: Detail[]; icons: bool
         const Icon = ICONS[d.icon] ?? User;
         return (
           <li key={d.id}>
+            <Mark path={`detail:${d.id}`} />
             {icons && <Icon className="ic" aria-hidden strokeWidth={2} />}
             <Ed path={`detail:${d.id}`} value={d.value} ph={DETAIL_PH[d.icon] ?? "Detail"} />
           </li>
@@ -385,6 +389,7 @@ export function Identity({ cv }: { cv: Cv }) {
   const p = cv.data.personal;
   return (
     <div className="who">
+      <Mark path="name" />
       <Ed as="div" path="name" value={p.fullName} ph="Your Name" className="cv-name" />
       {cv.design.showTitle && <Ed as="div" path="title" value={p.jobTitle} ph="Job title you want" className="cv-title" />}
     </div>
@@ -393,7 +398,7 @@ export function Identity({ cv }: { cv: Cv }) {
 
 /** the full width header used by "top" and "banner" templates */
 export function Header({ cv, tpl }: { cv: Cv; tpl: TemplateDef }) {
-  const summary = tpl.summaryInHeader ? cv.data.sections.find((x) => x.type === "summary" && !x.hidden) : undefined;
+  const summary = (cv.design.summaryInHeader ?? tpl.summaryInHeader) ? cv.data.sections.find((x) => x.type === "summary" && !x.hidden) : undefined;
   return (
     <header className={"cv-head" + (tpl.header === "banner" ? " banner" : "") + (summary ? " with-summary" : "")}>
       <span className="monogram" aria-hidden><span>{initials(cv.data.personal.fullName)}</span></span>
@@ -423,7 +428,7 @@ export function buildBlocks(cv: Cv, tpl: TemplateDef, editing: boolean): Block[]
     out.push({ key: "contacts", column: "side", node: <div className="side-contacts"><DetailsList details={cv.data.personal.details} icons={cv.design.showIcons} /></div> });
   }
 
-  const summaryUp = tpl.summaryInHeader && !(tpl.header === "side" && hasSide);
+  const summaryUp = (cv.design.summaryInHeader ?? tpl.summaryInHeader) && !(tpl.header === "side" && hasSide);
   let summarySkipped = false;
   for (const s of cv.data.sections) {
     if (s.hidden) continue;
@@ -434,7 +439,7 @@ export function buildBlocks(cv: Cv, tpl: TemplateDef, editing: boolean): Block[]
     const startAt = out.length;
 
     if (s.type === "summary") {
-      out.push({ ...base, key: s.id, node: <div className="sec">{head}<Ed as="div" className="summary" path={`sec:${s.id}:text`} value={s.text} rich ph="Two to four lines on who you are and what you bring." /></div> });
+      out.push({ ...base, key: s.id, node: <div className="sec has-mark">{head}<Mark path={`sec:${s.id}:text`} /><Ed as="div" className="summary" path={`sec:${s.id}:text`} value={s.text} rich ph="Two to four lines on who you are and what you bring." /></div> });
     } else if (kindOf(s.type) === "items") {
       out.push({ ...base, key: s.id, node: <div className="sec">{head}<ItemsBlock s={s} cv={cv} /></div> });
     } else if (!s.entries.length) {

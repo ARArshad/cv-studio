@@ -6,7 +6,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { normaliseCv } from "./io";
 import { makeCv, uid } from "./sample";
 import type { Persona } from "./templates";
-import type { Cv, CvData, Design, TemplateId } from "./types";
+import type { Cv, CvData, Design, Entry, SectionType, TemplateId } from "./types";
 
 /**
  * Every CV the person has, kept in the browser's local storage.
@@ -17,6 +17,17 @@ import type { Cv, CvData, Design, TemplateId } from "./types";
  */
 
 type Snapshot = { data: CvData; design: Design };
+
+/** a bullet, entry or summary kept to reuse in any CV */
+export interface SavedItem {
+  id: string;
+  kind: "bullet" | "entry" | "summary";
+  sectionType?: SectionType;
+  /** rich text for bullets and summaries */
+  text?: string;
+  entry?: Entry;
+  createdAt: number;
+}
 
 interface LibraryState {
   cvs: Record<string, Cv>;
@@ -35,6 +46,10 @@ interface LibraryState {
   undo: (id: string) => void;
   redo: (id: string) => void;
   startEditing: (id: string) => void;
+
+  saved: SavedItem[];
+  saveItem: (item: Omit<SavedItem, "id" | "createdAt">) => void;
+  removeSaved: (id: string) => void;
 }
 
 const HISTORY_LIMIT = 100;
@@ -132,6 +147,10 @@ export const useLibrary = create<LibraryState>()(
           };
         }),
 
+      saved: [],
+      saveItem: (item) => set((s) => ({ saved: [{ ...clone(item), id: uid("sv_"), createdAt: Date.now() }, ...s.saved].slice(0, 300) })),
+      removeSaved: (id) => set((s) => ({ saved: s.saved.filter((x) => x.id !== id) })),
+
       startEditing: (id) =>
         set((s) => (s.historyFor === id ? s : { past: [], future: [], historyFor: id })),
     }),
@@ -144,13 +163,13 @@ export const useLibrary = create<LibraryState>()(
         if (from < 2 && st?.cvs) {
           const next: Record<string, Cv> = {};
           for (const [k, v] of Object.entries(st.cvs)) { const cv = normaliseCv(v); if (cv) next[k] = { ...cv, id: k }; }
-          return { cvs: next } as never;
+          return { ...st, cvs: next } as never;
         }
         return persisted as never;
       },
       /* window.localStorage, so the server (where Node may have its own) never touches it */
       storage: createJSONStorage(() => window.localStorage),
-      partialize: (s) => ({ cvs: s.cvs }),
+      partialize: (s) => ({ cvs: s.cvs, saved: s.saved }),
     },
   ),
 );

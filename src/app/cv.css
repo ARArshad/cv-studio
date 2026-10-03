@@ -28,6 +28,7 @@
   font-size: var(--fs);
   line-height: var(--lh);
   letter-spacing: var(--ls);
+  word-spacing: var(--ws);
   text-align: left;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
@@ -249,6 +250,18 @@ li:hover > .item-x, .tag:hover > .item-x { display: grid; }
 .editing .ring-wrap { cursor: pointer; }
 
 .editing .photo { cursor: pointer; }
+
+/* optimizer markers in the margin */
+.opt-mark { display: grid; place-items: center; left: -24px; top: 0.15em; width: 17px; height: 17px; padding: 0; border: 0; border-radius: 50%; cursor: pointer; font: 700 11px/1 var(--f-inter), sans-serif; letter-spacing: 0; text-transform: none; color: #fff; box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25); }
+.opt-mark.fix { background: #f97316; }
+.opt-mark.tip { background: #3d6ff5; font-style: italic; font-family: Georgia, serif; }
+.opt-mark:hover { transform: scale(1.15); }
+.e-list li, .e-top, .who, .sec.has-mark, .contacts li { position: relative; }
+.e-list li > .opt-mark { left: -36px; }
+.sec.has-mark > .opt-mark { top: 32px; }
+.cv-head .who > .opt-mark, .side-ident .who > .opt-mark { left: -22px; top: 6px; }
+.contacts li > .opt-mark { left: -22px; top: 0; }
+.cv-pages.hide-marks .opt-mark { display: none; }
 .photo-edit { inset: 0; place-items: center; background: rgba(15, 23, 42, 0.55); color: #fff; font: 600 11px var(--f-inter), sans-serif; letter-spacing: 0; text-transform: none; text-align: center; }
 .photo:hover > .photo-edit { display: grid; }
 
@@ -485,6 +498,7 @@ li:hover > .item-x, .tag:hover > .item-x { display: grid; }
 .tpl-prism .col.side .cv-h { font-size: calc(var(--fs) * 1.04); }
 
 /* ---------------- shared extras ---------------- */
+.page-foot { position: absolute; z-index: 2; left: var(--m); right: var(--m); bottom: calc(var(--m) * 0.32); display: flex; justify-content: space-between; font-size: calc(var(--fs) * 0.78); color: var(--muted); letter-spacing: 0.02em; }
 .head-summary { margin-top: 9px; font-size: calc(var(--fs) * 0.98); line-height: var(--lh); max-width: 62ch; }
 .cv-head.banner .head-summary { color: rgba(255, 255, 255, 0.86); }
 .t-testimonials .e-p { font-style: italic; position: relative; padding-left: 14px; }

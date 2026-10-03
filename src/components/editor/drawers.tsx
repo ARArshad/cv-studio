@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent,
 } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowLeftRight, Camera, Check, CheckCircle2, Circle, Crown, Eye, EyeOff, GripVertical, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeftRight, Bookmark, Camera, Check, CheckCircle2, Circle, Crown, Eye, EyeOff, FileUp, GripVertical, Plus, Trash2, X } from "lucide-react";
 import { SECTION_ICONS } from "@/components/cv/blocks";
 import { CvThumb } from "@/components/cv/CvThumb";
 import { focusSoon } from "@/components/cv/edit";
@@ -14,8 +14,12 @@ import { IconButton, cx, inputCls } from "@/components/ui";
 import { PHRASES } from "@/lib/phrases";
 import { SECTION_LABELS, designFor, newSection, uid } from "@/lib/sample";
 import { checkCv } from "@/lib/score";
+import { optimize } from "@/lib/optimizer";
+import { parseCvText, pdfText } from "@/lib/importText";
+import { toText } from "@/lib/rich";
+import { useLibrary } from "@/lib/store";
 import { CATEGORIES, TEMPLATES, getTemplate, type Category } from "@/lib/templates";
-import type { Cv, DetailIcon, Section, SectionType, TemplateId } from "@/lib/types";
+import type { Cv, CvData, DetailIcon, Entry, Section, SectionType, TemplateId } from "@/lib/types";
 import { useEditor } from "./context";
 
 /* ---------------- add section ---------------- */
@@ -306,7 +310,9 @@ export function TemplatesDrawer() {
   const choose = (id: TemplateId) =>
     update((d) => {
       /* the new template brings its own look; content and your choices about photo and paper stay */
-      d.design = { ...designFor(id), pageSize: d.design.pageSize, showPhoto: d.design.showPhoto, showTitle: d.design.showTitle, showIcons: d.design.showIcons };
+      const k = d.design;
+      d.design = { ...designFor(id), pageSize: k.pageSize, showPhoto: k.showPhoto, showTitle: k.showTitle, showIcons: k.showIcons,
+        dateFormat: k.dateFormat, country: k.country, level: k.level, pageNumbers: k.pageNumbers, nameOnPages: k.nameOnPages };
     });
 
   return (
@@ -407,6 +413,156 @@ export function AtsDrawer() {
           <li key={t.text} className="flex gap-2 text-[13px]">
             {t.ok ? <CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-emerald-600" /> : <Circle className="mt-0.5 h-4 w-4 flex-none text-amber-500" />}
             {t.text}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/* ---------------- optimizer ---------------- */
+
+export function OptimizerDrawer({ pages, ignored, onIgnore, onGo }: { pages: number; ignored: Set<string>; onIgnore: (id: string) => void; onGo: (path: string) => void }) {
+  const { cv, update } = useEditor();
+  const list = useMemo(() => optimize(cv, pages).filter((s) => !ignored.has(s.id)), [cv, pages, ignored]);
+  const fixes = list.filter((s) => s.level === "fix"), tips = list.filter((s) => s.level === "tip");
+  const group = (title: string, items: typeof list) => items.length > 0 && (
+    <div className="mb-5">
+      <h4 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{title} ({items.length})</h4>
+      <ul className="space-y-2">
+        {items.map((s) => (
+          <li key={s.id} className="rounded-xl border border-slate-200 p-3" data-testid="opt-item">
+            <button type="button" onClick={() => onGo(s.path)} className="block w-full text-left cursor-pointer">
+              <span className={cx("mr-2 inline-grid h-4.5 w-4.5 place-items-center rounded-full text-[10px] font-bold text-white", s.level === "fix" ? "bg-orange-500" : "bg-brand-500")}>{s.level === "fix" ? "!" : "i"}</span>
+              <span className="text-[13.5px] font-medium">{s.title}</span>
+              <span className="mt-1 block text-[12.5px] leading-snug text-slate-500">{s.detail}</span>
+            </button>
+            <div className="mt-2 flex gap-3">
+              {s.fix && <button type="button" onClick={() => update((d) => s.fix!.apply(d))} className="text-[12.5px] font-semibold text-brand-600 hover:underline cursor-pointer" data-testid="opt-fix">{s.fix.label}</button>}
+              <button type="button" onClick={() => onIgnore(s.id)} className="text-[12.5px] text-slate-500 hover:text-ink cursor-pointer">Ignore</button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+  return (
+    <div data-testid="optimizer-drawer">
+      <CheckDrawer pages={pages} />
+      <div className="my-5 h-px bg-slate-100" />
+      {list.length === 0
+        ? <p className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">Nothing to improve line by line. Nicely done.</p>
+        : <>
+            <p className="mb-4 text-[13px] text-slate-500">These also show as small markers beside the text on your CV. Click a marker or an item to jump to it.</p>
+            {group("Fix", fixes)}
+            {group("Tips", tips)}
+          </>}
+    </div>
+  );
+}
+
+/* ---------------- import content ---------------- */
+
+export function ImportDrawer({ onReplace, onNew }: { onReplace: (d: CvData) => void; onNew: (d: CvData) => void }) {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const parsed = useMemo(() => (text.trim().length > 30 ? parseCvText(text) : null), [text]);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const read = async (f: File) => {
+    setErr(""); setBusy(true);
+    try {
+      if (f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf")) setText(await pdfText(f));
+      else setText(await f.text());
+    } catch { setErr("That file could not be read. Try copying the text from it and pasting it below."); }
+    setBusy(false);
+  };
+  return (
+    <div data-testid="import-drawer">
+      <p className="mb-3 text-[13px] text-slate-500">Bring in an old CV and it will be sorted into sections in this template. Upload a PDF or text file, or paste the text.</p>
+      <button type="button" onClick={() => fileRef.current?.click()}
+        className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-slate-300 py-6 text-sm text-slate-600 hover:border-brand-500 hover:text-brand-700 cursor-pointer">
+        <FileUp className="h-6 w-6" />{busy ? "Reading…" : "Upload a PDF or .txt file"}
+      </button>
+      <input ref={fileRef} type="file" accept=".pdf,.txt,application/pdf,text/plain" hidden data-testid="import-cv-file"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) read(f); e.target.value = ""; }} />
+      {err && <p className="mt-2 text-[13px] text-red-600">{err}</p>}
+      <textarea className={cx(inputCls, "mt-3 h-40 resize-y font-mono text-[12px]")} value={text} onChange={(e) => setText(e.target.value)} placeholder="Or paste the text of your CV here" data-testid="import-text" />
+      {parsed && (
+        <div className="mt-4 rounded-xl bg-slate-50 p-3 text-[13px]" data-testid="import-preview">
+          <p className="font-semibold">{parsed.personal.fullName || "No name found"}{parsed.personal.jobTitle ? `, ${parsed.personal.jobTitle}` : ""}</p>
+          <p className="mt-0.5 text-slate-500">{parsed.personal.details.length} contact detail{parsed.personal.details.length === 1 ? "" : "s"}</p>
+          <ul className="mt-2 space-y-0.5 text-slate-600">
+            {parsed.sections.map((s) => <li key={s.id}>{s.title}: {s.entries.length ? `${s.entries.length} entr${s.entries.length === 1 ? "y" : "ies"}` : s.items.length ? `${s.items.length} items` : "text"}</li>)}
+          </ul>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={() => onNew(parsed)} className="rounded-lg bg-brand-600 px-3 py-2 text-[13px] font-semibold text-white hover:bg-brand-700 cursor-pointer" data-testid="import-new">Open as a new CV</button>
+            <button type="button" onClick={() => { if (confirm("Replace everything in this CV with the imported content?")) onReplace(parsed); }} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] font-medium hover:bg-slate-50 cursor-pointer" data-testid="import-replace">Replace this CV</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- saved content ---------------- */
+
+export function SavedDrawer() {
+  const { cv, update, lastPath } = useEditor();
+  const saved = useLibrary((s) => s.saved);
+  const { saveItem, removeSaved } = useLibrary.getState();
+  const [q, setQ] = useState("");
+  const m = lastPath?.match(/^(?:bul|ent):([^:]+):([^:]+)(?::(\d+))?/);
+  const current = (() => {
+    const s = cv.data.sections.find((x) => x.id === m?.[1]);
+    const e = s?.entries.find((x) => x.id === m?.[2]);
+    return { s, e, bullet: m?.[3] && e ? e.bullets[Number(m[3])] : undefined };
+  })();
+  const list = saved.filter((x) => !q || (toText(x.text ?? "") + " " + (x.entry ? x.entry.title + " " + x.entry.subtitle + " " + x.entry.bullets.join(" ") : "")).toLowerCase().includes(q.toLowerCase()));
+
+  const insertBullet = (text: string) => {
+    const s = current.s ?? cv.data.sections.find((x) => x.type === "experience");
+    const e = current.e ?? s?.entries[0];
+    if (!s || !e) return;
+    update((d) => { const t = d.data.sections.find((x) => x.id === s.id)?.entries.find((x) => x.id === e.id); if (t) { const empty = t.bullets.findIndex((b) => !toText(b).trim()); if (empty >= 0) t.bullets[empty] = text; else t.bullets.push(text); } const sec = d.data.sections.find((x) => x.id === s.id); if (sec) sec.fields.bullets = true; });
+  };
+  const insertEntry = (en: Entry, type?: SectionType) => {
+    update((d) => {
+      let s = d.data.sections.find((x) => x.type === type && !x.hidden) ?? d.data.sections.find((x) => x.type === type);
+      if (!s) { s = newSection(type ?? "custom", { entries: [] }); d.data.sections.push(s); }
+      s.entries.push({ ...JSON.parse(JSON.stringify(en)), id: uid("e_") });
+    });
+  };
+
+  return (
+    <div data-testid="saved-drawer">
+      <p className="mb-3 text-[13px] text-slate-500">Keep your best bullets and entries here and reuse them in any CV. Save a whole entry with the bookmark on its toolbar.</p>
+      {current.bullet && toText(current.bullet).trim() && (
+        <button type="button" onClick={() => saveItem({ kind: "bullet", text: current.bullet!, sectionType: current.s?.type })}
+          className="mb-2 w-full rounded-lg bg-brand-50 px-3 py-2 text-left text-[13px] text-brand-700 hover:bg-brand-100 cursor-pointer" data-testid="save-bullet">
+          <Bookmark className="mr-1.5 inline h-4 w-4" />Save the bullet you were editing
+        </button>
+      )}
+      {current.e && (
+        <button type="button" onClick={() => saveItem({ kind: "entry", entry: current.e!, sectionType: current.s?.type })}
+          className="mb-3 w-full rounded-lg bg-slate-50 px-3 py-2 text-left text-[13px] text-slate-700 hover:bg-slate-100 cursor-pointer">
+          <Bookmark className="mr-1.5 inline h-4 w-4" />Save the whole entry: {current.e.title || "untitled"}
+        </button>
+      )}
+      <input className={cx(inputCls, "mb-3")} placeholder="Search saved content" value={q} onChange={(e) => setQ(e.target.value)} />
+      {list.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-[13px] text-slate-400">Nothing saved yet</p>}
+      <ul className="space-y-2">
+        {list.map((x) => (
+          <li key={x.id} className="rounded-xl border border-slate-200 p-3" data-testid="saved-item">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{x.kind === "entry" ? `${SECTION_LABELS[x.sectionType ?? "custom"].title} entry` : x.kind}</p>
+            {x.kind === "entry" && x.entry
+              ? <p className="mt-1 text-[13px]"><b>{x.entry.title}</b>{x.entry.subtitle ? `, ${x.entry.subtitle}` : ""}<span className="block text-slate-500">{x.entry.bullets.length} bullet{x.entry.bullets.length === 1 ? "" : "s"}</span></p>
+              : <p className="mt-1 text-[13px] text-slate-700">{toText(x.text ?? "")}</p>}
+            <div className="mt-2 flex gap-3">
+              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => x.kind === "entry" && x.entry ? insertEntry(x.entry, x.sectionType) : insertBullet(x.text ?? "")}
+                className="text-[12.5px] font-semibold text-brand-600 hover:underline cursor-pointer" data-testid="saved-insert">Add to CV</button>
+              <button type="button" onClick={() => removeSaved(x.id)} className="text-[12.5px] text-slate-500 hover:text-red-600 cursor-pointer">Delete</button>
+            </div>
           </li>
         ))}
       </ul>

@@ -104,6 +104,8 @@ export type PhotoShape = "circle" | "rounded" | "square";
 export type PageSize = "A4" | "Letter";
 export type Spacing = "compact" | "normal" | "relaxed";
 export type Layout = "single" | "left" | "right";
+export type Country = "uk" | "us" | "ca" | "au" | "ie" | "de" | "fr" | "nl" | "in" | "pk" | "ae" | "other";
+export type Level = "student" | "entry" | "mid" | "senior" | "executive";
 export type DateFormat = "mm/yyyy" | "mon yyyy" | "month yyyy" | "yyyy";
 export type Backdrop = "none" | "dots" | "grid" | "lines" | "corner" | "wave";
 
@@ -138,6 +140,16 @@ export interface Design {
   backdrop: Backdrop;
   /** how picked dates are written */
   dateFormat: DateFormat;
+  /** extra word spacing in em */
+  wordSpacing: number;
+  /** the summary in the header; null keeps the template's choice */
+  summaryInHeader: boolean | null;
+  pageNumbers: boolean;
+  /** your name in the footer of every page after the first */
+  nameOnPages: boolean;
+  /** where you are applying and how senior you are; they tune the advice */
+  country: Country;
+  level: Level;
 }
 
 export interface Cv {

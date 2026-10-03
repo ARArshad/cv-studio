@@ -23,6 +23,7 @@ export function pageVars(cv: Cv, tpl: TemplateDef): CSSProperties {
     "--fs": `${(tpl.id === "ledger" ? 11.4 : 12.2) * d.fontScale}px`,
     "--lh": d.lineHeight,
     "--ls": `${d.letterSpacing}em`,
+    "--ws": `${d.wordSpacing ?? 0}em`,
     "--gap": `${SPACING[d.spacing] ?? 18}px`,
     "--m": `${d.margin}px`,
     "--side-w": `${side * 100}%`,
@@ -141,6 +142,14 @@ export function CvDocument({ cv, maxPages, onPageCount, className }: Props) {
     </div>
   );
 
+  const total = layout?.pages.length ?? 1;
+  const footer = (index: number) => {
+    const name = cv.design.nameOnPages && index > 0 ? cv.data.personal.fullName : "";
+    const num = cv.design.pageNumbers ? `Page ${index + 1} of ${total}` : "";
+    if (!name && !num) return null;
+    return <div className="page-foot"><span>{name}</span><span>{num}</span></div>;
+  };
+
   const renderPage = (index: number, main: Block[], side: Block[], extra?: string) => (
     <div key={(extra ?? "p") + index} className={pageClass + (extra ? " " + extra : "") + (index === 0 ? " first" : " rest")} style={vars}>
       <div className="page-art" aria-hidden>
@@ -152,6 +161,7 @@ export function CvDocument({ cv, maxPages, onPageCount, className }: Props) {
         {index === 0 && fullHeader && <Header cv={cv} tpl={tpl} />}
         {cols(main, side)}
       </div>
+      {!extra && footer(index)}
     </div>
   );
 

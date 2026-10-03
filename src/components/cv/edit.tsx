@@ -31,7 +31,9 @@ export type Action =
   | { t: "colSection"; sid: string }
   | { t: "entryMenu"; sid: string; eid: string; anchor: DOMRect }
   | { t: "datePicker"; sid: string; eid: string; which: "start" | "end"; anchor: DOMRect }
-  | { t: "photo" };
+  | { t: "photo" }
+  | { t: "optimizer"; path: string; anchor: DOMRect }
+  | { t: "saveEntry"; sid: string; eid: string };
 
 export interface EditApi {
   /** show editing affordances (placeholders, toolbars) */
@@ -40,6 +42,30 @@ export interface EditApi {
   measure: boolean;
   set: (path: Path, value: string) => void;
   act: (a: Action) => void;
+  /** suggestions by field path, shown as markers beside the text */
+  issues?: Map<string, { level: "fix" | "tip" }[]>;
+}
+
+/** a small marker beside a field that has suggestions; click for details */
+export function Mark({ path, extra }: { path: string; extra?: string[] }) {
+  const ed = useEdit();
+  if (!ed?.on || ed.measure || !ed.issues) return null;
+  const list = [path, ...(extra ?? [])].flatMap((p) => ed.issues!.get(p) ?? []);
+  if (!list.length) return null;
+  const fix = list.some((x) => x.level === "fix");
+  return (
+    <button
+      type="button"
+      className={"edit-ui opt-mark " + (fix ? "fix" : "tip")}
+      aria-label={`${list.length} suggestion${list.length > 1 ? "s" : ""}`}
+      title={`${list.length} suggestion${list.length > 1 ? "s" : ""}`}
+      data-testid="opt-mark"
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={(e) => { e.stopPropagation(); ed.act({ t: "optimizer", path, anchor: e.currentTarget.getBoundingClientRect() }); }}
+    >
+      {fix ? "!" : "i"}
+    </button>
+  );
 }
 
 export const EditContext = createContext<EditApi | null>(null);

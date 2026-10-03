@@ -4,40 +4,45 @@ import Link from "next/link";
 import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft, ChevronDown, Copy, Download, FileJson, LayoutTemplate, ListChecks, Minus, Palette, PanelsTopLeft,
-  Plus, Redo2, Rows3, ScanSearch, Settings2, Sparkles, Type, Undo2, UserRound, X,
+  ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, Columns2, Copy, Download, FileJson, LayoutTemplate, ListChecks, Minus, Palette, PanelsTopLeft,
+  Bookmark, FileUp, Plus, Redo2, Rows3, ScanSearch, Settings2, Sparkles, Type, Undo2, UserRound, X,
 } from "lucide-react";
 import { CvDocument, PAGE_PX } from "@/components/cv/CvDocument";
-import { EditContext, type Action, type EditApi } from "@/components/cv/edit";
+import { EditContext, focusSoon, type Action, type EditApi } from "@/components/cv/edit";
+import { byPath, optimize } from "@/lib/optimizer";
 import { Toast, cx, download, useToast } from "@/components/ui";
 import { exportFile, fileName } from "@/lib/io";
 import { SECTION_LABELS } from "@/lib/sample";
 import { checkCv } from "@/lib/score";
+import { getTemplate } from "@/lib/templates";
 import { useHydrated, useLibrary } from "@/lib/store";
 import type { Cv, Entry, EntryFields } from "@/lib/types";
 import { EditorContext, type Draft } from "./context";
-import { AddSectionDrawer, AtsDrawer, CheckDrawer, PersonalDrawer, PhrasesDrawer, RearrangeDrawer, TemplatesDrawer } from "./drawers";
+import { AddSectionDrawer, AtsDrawer, ImportDrawer, OptimizerDrawer, PersonalDrawer, PhrasesDrawer, RearrangeDrawer, SavedDrawer, TemplatesDrawer } from "./drawers";
 import { DatePicker } from "./DatePicker";
 import { PhotoCropper, loadImageFile } from "./PhotoCropper";
 import { applyAction, applyPath } from "./ops";
 import { FloatingMenu, Popover, Toggle } from "./Popover";
 import { FontsPanel, LayoutPanel, PagePanel, ThemesPanel } from "./toolbarPanels";
 
-type DrawerId = "add" | "arrange" | "templates" | "personal" | "phrases" | "check" | "ats";
+type DrawerId = "add" | "arrange" | "templates" | "personal" | "phrases" | "optimizer" | "ats" | "import" | "saved";
 
-const TOOLS: { id: DrawerId; label: string; icon: ReactNode }[] = [
+const TOOLS: ({ id: DrawerId; label: string; icon: ReactNode } | "sep")[] = [
+  { id: "ats", label: "ATS checker", icon: <ScanSearch className="h-[18px] w-[18px]" /> },
+  { id: "import", label: "Import content", icon: <FileUp className="h-[18px] w-[18px]" /> },
+  { id: "templates", label: "Templates", icon: <LayoutTemplate className="h-[18px] w-[18px]" /> },
+  { id: "saved", label: "Saved content", icon: <Bookmark className="h-[18px] w-[18px]" /> },
+  { id: "optimizer", label: "Optimizer", icon: <ListChecks className="h-[18px] w-[18px]" /> },
+  "sep",
   { id: "add", label: "Add section", icon: <Plus className="h-[18px] w-[18px]" /> },
   { id: "arrange", label: "Rearrange", icon: <Rows3 className="h-[18px] w-[18px]" /> },
-  { id: "templates", label: "Templates", icon: <LayoutTemplate className="h-[18px] w-[18px]" /> },
   { id: "personal", label: "Personal info", icon: <UserRound className="h-[18px] w-[18px]" /> },
   { id: "phrases", label: "Phrases", icon: <Sparkles className="h-[18px] w-[18px]" /> },
-  { id: "check", label: "CV check", icon: <ListChecks className="h-[18px] w-[18px]" /> },
-  { id: "ats", label: "ATS checker", icon: <ScanSearch className="h-[18px] w-[18px]" /> },
 ];
 
 const DRAWER_TITLES: Record<DrawerId, string> = {
   add: "Add a section", arrange: "Rearrange sections", templates: "Templates", personal: "Personal information",
-  phrases: "Ready made phrases", check: "CV check", ats: "ATS checker",
+  phrases: "Ready made phrases", optimizer: "Optimizer", ats: "ATS checker", import: "Import content", saved: "Saved content",
 };
 
 export function Editor({ id }: { id: string }) {
@@ -67,6 +72,9 @@ function EditorInner({ id }: { id: string }) {
   const [entryMenu, setEntryMenu] = useState<{ sid: string; eid: string; anchor: DOMRect } | null>(null);
   const [datePick, setDatePick] = useState<{ sid: string; eid: string; which: "start" | "end"; anchor: DOMRect } | null>(null);
   const [crop, setCrop] = useState<string | null>(null);
+  const [optPop, setOptPop] = useState<{ path: string; anchor: DOMRect } | null>(null);
+  const [ignored, setIgnored] = useState<Set<string>>(new Set());
+  const { addCv } = useLibrary.getState();
   const [toast, showToast] = useToast();
   const photoRef = useRef<HTMLInputElement>(null);
 
@@ -82,6 +90,13 @@ function EditorInner({ id }: { id: string }) {
       else photoRef.current?.click();
       return;
     }
+    if (a.t === "optimizer") { setOptPop({ path: a.path, anchor: a.anchor }); return; }
+    if (a.t === "saveEntry") {
+      const s = useLibrary.getState().cvs[id]?.data.sections.find((x) => x.id === a.sid);
+      const e = s?.entries.find((x) => x.id === a.eid);
+      if (s && e) { useLibrary.getState().saveItem({ kind: "entry", entry: e, sectionType: s.type }); showToast("Saved. Find it under Saved content."); }
+      return;
+    }
     if (a.t === "datePicker") { setDatePick({ sid: a.sid, eid: a.eid, which: a.which, anchor: a.anchor }); return; }
     if (a.t === "entryMenu") { setEntryMenu({ sid: a.sid, eid: a.eid, anchor: a.anchor }); return; }
     if (a.t === "delSection") {
@@ -92,12 +107,23 @@ function EditorInner({ id }: { id: string }) {
     updateCv(id, (d) => { applyAction(d, a); });
   }, [id, updateCv, showToast]);
 
+  const suggestions = useMemo(() => optimize(cv, pages).filter((x) => !ignored.has(x.id)), [cv, pages, ignored]);
+  const issues = useMemo(() => byPath(suggestions), [suggestions]);
+
   const editApi = useMemo<EditApi>(() => ({
     on: true,
     measure: false,
     set: (path, value) => updateCv(id, (d) => applyPath(d, path, value), "p:" + path),
     act,
-  }), [id, updateCv, act]);
+    issues,
+  }), [id, updateCv, act, issues]);
+
+  const goTo = useCallback((path: string) => {
+    if (window.innerWidth < 1024) setDrawer(null);
+    const el = document.querySelector<HTMLElement>(`[data-testid=preview] .cv-pages [data-path="${CSS.escape(path)}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    focusSoon(path, "end");
+  }, []);
 
   const ctx = useMemo(() => ({ cv, update, lastPath }), [cv, update, lastPath]);
 
@@ -116,7 +142,7 @@ function EditorInner({ id }: { id: string }) {
 
   const printPdf = () => printCv(cv);
 
-  const issues = useMemo(() => checkCv(cv, pages).checks.filter((c) => !c.ok).length, [cv, pages]);
+  const issueCount = suggestions.filter((x) => x.level === "fix").length + checkCv(cv, pages).checks.filter((c) => !c.ok).length;
 
   return (
     <EditorContext.Provider value={ctx}>
@@ -135,7 +161,7 @@ function EditorInner({ id }: { id: string }) {
             <Popover width={340} testId="layout-pop" trigger={(open, toggle) => <BarBtn label="Layout" text active={open} onClick={toggle} testId="tb-layout"><PanelsTopLeft className="h-4 w-4" /></BarBtn>}>{() => <LayoutPanel />}</Popover>
             <Popover width={420} testId="fonts-pop" trigger={(open, toggle) => <BarBtn label="Fonts" text active={open} onClick={toggle} testId="tb-fonts"><Type className="h-4 w-4" /></BarBtn>}>{() => <FontsPanel />}</Popover>
             <Popover width={340} align="center" testId="themes-pop" trigger={(open, toggle) => <BarBtn label="Themes" text active={open} onClick={toggle} testId="tb-themes"><Palette className="h-4 w-4" /></BarBtn>}>{() => <ThemesPanel />}</Popover>
-            <Popover width={320} align="right" testId="page-pop" trigger={(open, toggle) => <BarBtn label="Page" text active={open} onClick={toggle} testId="tb-page"><Settings2 className="h-4 w-4" /></BarBtn>}>{() => <PagePanel />}</Popover>
+            <Popover width={320} align="right" testId="page-pop" trigger={(open, toggle) => <BarBtn label="Preferences" text active={open} onClick={toggle} testId="tb-page"><Settings2 className="h-4 w-4" /></BarBtn>}>{() => <PagePanel />}</Popover>
           </div>
 
           <Popover width={260} align="right" trigger={(open, toggle) => (
@@ -161,13 +187,13 @@ function EditorInner({ id }: { id: string }) {
         <div className="relative flex min-h-0 flex-1 print-reset">
           {/* ---------------- tool card ---------------- */}
           <nav className="absolute bottom-3 left-1/2 z-30 flex -translate-x-1/2 gap-1 rounded-2xl bg-white p-1.5 shadow-xl no-print lg:bottom-auto lg:left-4 lg:top-2 lg:translate-x-0 lg:flex-col">
-            {TOOLS.map((t) => (
+            {TOOLS.map((t, n) => t === "sep" ? <span key={"sep" + n} className="mx-1 my-0.5 w-px bg-slate-200 lg:mx-2 lg:h-px lg:w-auto" /> : (
               <button key={t.id} type="button" onClick={() => setDrawer(drawer === t.id ? null : t.id)} data-tool={t.id} title={t.label}
                 className={cx("relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-medium cursor-pointer lg:pr-4",
                   drawer === t.id ? "bg-brand-600 text-white" : "text-slate-700 hover:bg-slate-100")}>
                 {t.icon}<span className="hidden lg:inline">{t.label}</span>
-                {t.id === "check" && issues > 0 && (
-                  <span className={cx("absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-bold lg:static lg:ml-auto", drawer === "check" ? "bg-white text-brand-700" : "bg-amber-500 text-white")} data-testid="issue-count">{issues}</span>
+                {t.id === "optimizer" && issueCount > 0 && (
+                  <span className={cx("absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-bold lg:static lg:ml-auto", drawer === "optimizer" ? "bg-white text-brand-700" : "bg-orange-500 text-white")} data-testid="issue-count">{issueCount}</span>
                 )}
               </button>
             ))}
@@ -187,7 +213,11 @@ function EditorInner({ id }: { id: string }) {
                 {drawer === "personal" && <PersonalDrawer onPhoto={() => act({ t: "photo" })} />}
                 {drawer === "ats" && <AtsDrawer />}
                 {drawer === "phrases" && <PhrasesDrawer />}
-                {drawer === "check" && <CheckDrawer pages={pages} />}
+                {drawer === "optimizer" && <OptimizerDrawer pages={pages} ignored={ignored} onIgnore={(x) => setIgnored((o) => new Set(o).add(x))} onGo={goTo} />}
+                {drawer === "import" && <ImportDrawer
+                  onReplace={(data) => { update((d) => { d.data = data; }); setDrawer(null); showToast("Imported. Check each section on the page."); }}
+                  onNew={(data) => { const nid = addCv({ ...cv, title: data.personal.fullName ? `${data.personal.fullName} (imported)` : "Imported CV", data }); router.push(`/editor/${nid}`); }} />}
+                {drawer === "saved" && <SavedDrawer />}
               </div>
             </aside>
           )}
@@ -199,6 +229,24 @@ function EditorInner({ id }: { id: string }) {
         </div>
 
         {entryMenu && <EntryMenu {...entryMenu} onClose={() => setEntryMenu(null)} />}
+        {optPop && (
+          <FloatingMenu anchor={optPop.anchor} onClose={() => setOptPop(null)} width={300}>
+            <div data-testid="opt-pop" className="space-y-3">
+              {(issues.get(optPop.path) ?? []).map((x) => (
+                <div key={x.id}>
+                  <p className="text-[13.5px] font-semibold">{x.title}</p>
+                  <p className="mt-0.5 text-[12.5px] leading-snug text-slate-500">{x.detail}</p>
+                  <div className="mt-1.5 flex gap-3">
+                    {x.fix && <button type="button" className="text-[12.5px] font-semibold text-brand-600 hover:underline cursor-pointer" data-testid="opt-pop-fix" onClick={() => { update((d) => x.fix!.apply(d)); setOptPop(null); }}>{x.fix.label}</button>}
+                    <button type="button" className="text-[12.5px] text-slate-500 hover:text-ink cursor-pointer" onClick={() => setIgnored((o) => new Set(o).add(x.id))}>Ignore</button>
+                  </div>
+                </div>
+              ))}
+              {!(issues.get(optPop.path) ?? []).length && <p className="text-[13px] text-emerald-700">All sorted here.</p>}
+              <button type="button" className="text-[12.5px] font-medium text-slate-600 hover:text-ink cursor-pointer" onClick={() => { setOptPop(null); setDrawer("optimizer"); }}>See all suggestions</button>
+            </div>
+          </FloatingMenu>
+        )}
         {datePick && (() => {
           const s = cv.data.sections.find((x) => x.id === datePick.sid);
           const e = s?.entries.find((x) => x.id === datePick.eid);
@@ -311,6 +359,24 @@ function EntryMenu({ sid, eid, anchor, onClose }: { sid: string; eid: string; an
   );
 }
 
+/** move the split between the two columns, like a ruler */
+function Balancer({ cv }: { cv: Cv }) {
+  const ctx = useContext(EditorContext);
+  const tpl = getTemplate(cv.design.template);
+  const layout = cv.design.layout ?? tpl.layout;
+  if (layout === "single" || !ctx) return null;
+  const w = Math.round((cv.design.sideWidth ?? tpl.sideWidth) * 100);
+  const set = (v: number) => ctx.update((d) => { d.design.sideWidth = Math.min(46, Math.max(24, v)) / 100; }, "sidew");
+  const dir = layout === "left" ? 1 : -1;
+  return (
+    <div className="flex items-center gap-0.5 rounded-full bg-white/95 p-0.5 shadow" data-testid="balancer" title="Move the column split">
+      <button type="button" aria-label="Move split left" onClick={() => set(w - 2 * dir)} className="grid h-7 w-7 place-items-center rounded-full text-slate-600 hover:bg-slate-100 cursor-pointer"><ChevronLeft className="h-3.5 w-3.5" /></button>
+      <span className="flex items-center gap-1 px-1 text-xs font-medium tabular-nums text-slate-700"><Columns2 className="h-3.5 w-3.5" />{layout === "left" ? `${w}/${100 - w}` : `${100 - w}/${w}`}</span>
+      <button type="button" aria-label="Move split right" onClick={() => set(w + 2 * dir)} className="grid h-7 w-7 place-items-center rounded-full text-slate-600 hover:bg-slate-100 cursor-pointer"><ChevronRight className="h-3.5 w-3.5" /></button>
+    </div>
+  );
+}
+
 function Preview({ cv, pages, onPages, onFocusPath, shift }: { cv: Cv; pages: number; onPages: (n: number) => void; onFocusPath: (p: string) => void; shift: boolean }) {
   const box = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState(0.8);
@@ -350,6 +416,7 @@ function Preview({ cv, pages, onPages, onFocusPath, shift }: { cv: Cv; pages: nu
         </div>
       </div>
       <div className="fixed bottom-4 right-4 z-30 flex items-center gap-2 no-print max-lg:bottom-20">
+        <Balancer cv={cv} />
         <span className="rounded-full bg-white/95 px-3 py-1.5 text-xs font-medium text-slate-700 shadow" data-testid="page-count">{pages} page{pages > 1 ? "s" : ""}</span>
         <div className="flex items-center gap-0.5 rounded-full bg-white/95 p-0.5 shadow">
           <button type="button" aria-label="Zoom out" onClick={() => step(-1)} className="grid h-7 w-7 place-items-center rounded-full text-slate-600 hover:bg-slate-100 cursor-pointer"><Minus className="h-3.5 w-3.5" /></button>

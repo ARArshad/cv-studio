@@ -240,6 +240,58 @@ try {
   check("and ones already in the CV", await page.getByTestId("ats-found").innerText(), (t) => t.toLowerCase().includes("positioning"));
   await tool("ats");
 
+  /* optimizer: markers on the page, with a fix */
+  const weak = page.locator(`${P} [data-path^="bul:"]`).nth(1);
+  await weak.click();
+  await page.keyboard.press("Meta+A");
+  await page.keyboard.type("Responsible for the regional launch plan");
+  await page.evaluate(() => document.activeElement?.blur());
+  await page.waitForTimeout(400);
+  const mark = page.locator(`${P} li`, { hasText: "Responsible for the regional" }).getByTestId("opt-mark");
+  check("a weak bullet gets a marker", await mark.count(), 1);
+  await mark.click();
+  await page.getByTestId("opt-pop-fix").first().click();
+  await page.waitForTimeout(300);
+  check("the fix rewrites the opening", (await text()).includes("Led the regional launch plan"), true);
+  await tool("optimizer");
+  check("the optimizer lists suggestions", await page.getByTestId("opt-item").count(), (n) => n > 0);
+  await tool("optimizer");
+
+  /* saved content */
+  const firstEntry = page.locator(`${P} .entry`).first();
+  await firstEntry.hover();
+  await firstEntry.getByLabel("Save to my saved content").click();
+  await tool("saved");
+  check("an entry can be saved", await page.getByTestId("saved-item").count(), 1);
+  await tool("saved");
+
+  /* presets, footer, preferences, balancer, word spacing */
+  await page.getByTestId("tb-layout").click();
+  await page.locator('[data-layout="left"]').click();
+  await page.locator('[data-preset="education"]').click();
+  await page.getByTestId("toggle-page-numbers").click();
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
+  check("page numbers show in the footer", await page.locator(`${P} .page-foot`).first().innerText(), (t) => t.includes("Page 1 of"));
+  const firstMainHeading = await page.locator(`${P} .col.main .cv-h`).first().innerText();
+  check("an arrangement preset reorders sections", firstMainHeading.toLowerCase(), (t) => t.includes("summary") || t.includes("education"));
+  await page.getByTestId("tb-page").click();
+  await page.getByTestId("country").selectOption("us");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(250);
+  check("choosing the US switches to Letter paper", await page.locator(`${P} > .cv-page`).first().evaluate((e) => e.style.getPropertyValue("--page-w")), "816px");
+  await page.getByTestId("tb-page").click();
+  await page.getByTestId("country").selectOption("uk");
+  await page.keyboard.press("Escape");
+  const split = await page.getByTestId("balancer").innerText();
+  await page.getByLabel("Move split right").click();
+  await page.waitForTimeout(200);
+  check("the balancer moves the column split", (await page.getByTestId("balancer").innerText()) !== split, true);
+  await page.getByTestId("tb-fonts").click();
+  await page.getByTestId("word-spacing").fill("0.1");
+  await page.keyboard.press("Escape");
+  check("word spacing applies", await page.locator(`${P} > .cv-page`).first().evaluate((e) => e.style.getPropertyValue("--ws")), "0.1em");
+
   /* phrases go into the job being edited */
   await caretToEnd(page.locator(`${P} [data-path^="bul:"]`).first());
   await tool("phrases");
@@ -331,6 +383,27 @@ try {
   await page.locator(`${P} > .cv-page`).first().waitFor();
   check("first version bullets become bullets", await page.locator(`${P} li`, { hasText: "Cut waiting times." }).count(), 1);
   check("first version bold stays bold", await page.locator(`${P} .summary b`).innerText(), "ten years");
+
+  /* import an old CV from a PDF */
+  const pdfPage = await ctx.newPage();
+  await pdfPage.setContent(`<body style="font-family:Arial;padding:40px">
+    <h1>Morgan Lee</h1><p>Warehouse Supervisor</p><p>morgan.lee@example.com | +44 7700 900888 | Hull, UK</p>
+    <h2>Experience</h2><p>Shift Supervisor, Humber Logistics</p><p>Jan 2020 - Present</p>
+    <p>• Led a team of 14 pickers on nights</p><p>• Raised pick accuracy to 99.6%</p>
+    <h2>Education</h2><p>NVQ Level 3 Warehousing, Hull College</p><p>2015 - 2016</p>
+    <h2>Skills</h2><p>Team leadership, Forklift, Stock control</p></body>`);
+  const oldPdf = path.join(TMP, "old-cv.pdf");
+  await pdfPage.pdf({ path: oldPdf, format: "A4" });
+  await pdfPage.close();
+  await tool("import");
+  await page.getByTestId("import-cv-file").setInputFiles(oldPdf);
+  await page.getByTestId("import-preview").waitFor({ timeout: 15000 });
+  check("a PDF is read and sorted into sections", await page.getByTestId("import-preview").innerText(), (t) => t.includes("Morgan Lee") && t.includes("Experience") && t.includes("Skills"));
+  await page.getByTestId("import-new").click();
+  await page.waitForURL((u) => u.pathname.startsWith("/editor/"));
+  await page.waitForTimeout(800);
+  const it = await text();
+  check("the imported CV has the job and bullets", it.includes("Humber Logistics") && it.includes("Raised pick accuracy to 99.6%"), true);
 
   /* a .cvjson from the single file app */
   const legacy = path.join(TMP, "old.cvjson");

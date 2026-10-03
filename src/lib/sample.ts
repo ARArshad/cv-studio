@@ -114,6 +114,12 @@ export function designFor(template: TemplateId, base?: Partial<Design>): Design 
     headingIcons: t.defaults.headingIcons,
     backdrop: t.defaults.backdrop,
     dateFormat: "mon yyyy",
+    wordSpacing: 0,
+    summaryInHeader: null,
+    pageNumbers: false,
+    nameOnPages: false,
+    country: "uk",
+    level: "mid",
     ...base,
   };
 }

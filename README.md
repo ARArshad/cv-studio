@@ -22,18 +22,24 @@ Free, private (CVs stay in the browser) and no sign up.
     "I am still here"), delete. Click skill dots, bars or rings to set a level. Click the photo
     to change it.
   - **Top toolbar**: undo and redo, **Layout** (one column or a sidebar on either side, sidebar
-    width, photo, job title, contact and heading icons, photo shape), **Fonts** (18 fonts for
-    headings and body, size, line and letter spacing), **Themes** (16 two colour themes, custom
-    colours, six page backgrounds), **Page** (A4 or Letter, spacing, margins, six skill level
-    styles), and **Download** (PDF, a .json copy, duplicate).
+    width, six section arrangements, photo, job title, summary in the header, contact and heading
+    icons, page numbers and your name on later pages, photo shape), **Fonts** (19 fonts for
+    headings and body, size, line, word and letter spacing), **Themes** (16 two colour themes,
+    custom colours, six page backgrounds), **Preferences** (country and experience level, A4 or
+    Letter, spacing, margins, date format, six skill level styles), and **Download** (PDF, a .json
+    copy, duplicate). A balancer under the page moves the split between the two columns.
   - Dates open a month and year picker (or take free text such as "Summer 2019"), and the Page
     panel changes how every date is written. Clicking the photo opens a crop tool: drag to frame,
     zoom, rotate.
-  - **Tool card**: **Add section** (22 section types), **Rearrange** (drag to reorder, move
-    between columns, hide and show), **Templates** (all 20 drawn with your own CV, with filters),
-    **Personal info** (photo and contact details), **Phrases** (ready made bullets dropped into
-    the job you were editing), **CV check** (a score with a reason for every point) and **ATS
-    checker** (paste a job advert to see which of its key words your CV already uses).
+  - **Tool card**: **ATS checker** (paste a job advert to see which of its key words your CV
+    already uses), **Import content** (upload an old CV as a PDF or paste its text and it is
+    sorted into sections), **Templates** (all thirty drawn with your own CV, filtered by
+    category), **Saved content** (keep your best bullets and entries and reuse them in any CV),
+    **Optimizer** (a CV score plus line by line suggestions, also shown as markers in the margin
+    of the page, with one click fixes for weak openings and personal details that do not belong),
+    **Add section** (22 section types), **Rearrange** (drag to reorder, move between columns,
+    hide and show), **Personal info** (photo and contact details) and **Phrases** (ready made
+    bullets dropped into the job you were editing).
   - New CVs start from a worked example for the role (marketing, software and IT, student,
     executive, design, healthcare) or a blank skeleton with placeholders in every field.
   - Real pages: long CVs flow onto further pages, a job's later bullets carry over rather than
@@ -73,6 +79,9 @@ Needs Node 20 or later.
 npm install
 npm run dev
 ```
+
+`npm run dev` and `npm run build` first copy the PDF reader's worker into `public/`
+(`scripts/copy-pdf-worker.mjs`), so importing PDFs works without any setup.
 
 Then open http://localhost:3000.
 
@@ -128,6 +137,8 @@ signed in feature later.
 | `src/lib/store.ts` | the library of CVs, saving, undo and redo |
 | `src/lib/io.ts` | download and import, and bringing older saves up to date |
 | `src/lib/score.ts` | the CV score |
+| `src/lib/optimizer.ts` | line by line suggestions and their fixes |
+| `src/lib/importText.ts` | reading an old CV from a PDF or text |
 | `src/lib/phrases.ts` | ready made phrases |
 | `src/components/cv/` | turns a CV into pages: blocks, measuring, pagination, editing on the page |
 | `src/app/cv.css` | how every template looks, one block per template |
