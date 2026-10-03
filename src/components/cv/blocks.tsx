@@ -1,21 +1,30 @@
+"use client";
+
 import type React from "react";
 import type { ReactNode } from "react";
 import {
-  AtSign, Briefcase, Calendar, Car, Code2, Flag, Globe, MapPin, Phone, Star, User, type LucideProps,
+  ArrowDown, ArrowLeftRight, ArrowUp, AtSign, BadgeCheck, BookOpen, Briefcase, Calendar, Car, Code2, EyeOff, Flag,
+  FolderKanban, Globe, GraduationCap, HandHeart, Heart, Languages, MapPin, Newspaper, Phone, Plus, Settings2, Star,
+  Trash2, Trophy, User, Users, Wrench, X, Zap, type LucideProps,
 } from "lucide-react";
 import type { TemplateDef } from "@/lib/templates";
-import type { Cv, Detail, DetailIcon, Entry, Item, Section } from "@/lib/types";
+import type { Cv, Detail, DetailIcon, Entry, Item, Section, SectionType } from "@/lib/types";
+import { Ed, splitAtCaret, useEdit } from "./edit";
 
 /**
  * Turns a CV into small blocks that pagination can move between pages:
- * a section heading always travels with its first entry, and long entry
- * descriptions can carry their later lines over to the next page.
+ * a section heading always travels with its first entry, and long entries
+ * can carry their later bullets over to the next page.
  */
 
 export interface Block {
   key: string;
   column: "main" | "side";
   sectionId?: string;
+  /** where this block sits in its section, for spacing and card styles */
+  pos?: "first" | "mid" | "last" | "only";
+  /** first block of an entry that is not the section's first */
+  entryStart?: boolean;
   node: ReactNode;
 }
 
@@ -33,45 +42,14 @@ const ICONS: Record<DetailIcon, (p: LucideProps) => React.ReactNode> = {
   calendar: Calendar, flag: Flag, car: Car, user: User, briefcase: Briefcase, star: Star,
 };
 
+export const SECTION_ICONS: Record<SectionType, (p: LucideProps) => React.ReactNode> = {
+  summary: User, experience: Briefcase, education: GraduationCap, skills: Wrench, languages: Languages,
+  projects: FolderKanban, certificates: BadgeCheck, courses: BookOpen, awards: Trophy, volunteering: HandHeart,
+  strengths: Zap, publications: Newspaper, interests: Heart, references: Users, custom: Star,
+};
+
 export const LEVEL_LABELS = ["", "Beginner", "Elementary", "Intermediate", "Advanced", "Expert"];
 export const LANGUAGE_LABELS = ["", "Basic", "Conversational", "Proficient", "Fluent", "Native"];
-
-/** **bold** inside a line */
-export function Rich({ text }: { text: string }) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return (
-    <>
-      {parts.map((p, i) =>
-        p.startsWith("**") && p.endsWith("**") && p.length > 4 ? <strong key={i}>{p.slice(2, -2)}</strong> : <span key={i}>{p}</span>,
-      )}
-    </>
-  );
-}
-
-type Line = { kind: "p" | "li"; text: string };
-
-export function parseLines(desc: string): Line[] {
-  return desc
-    .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l && !/^[-•*]$/.test(l))
-    .map((l) => (/^([-•*]|\d+\.)\s+/.test(l) ? { kind: "li" as const, text: l.replace(/^([-•*]|\d+\.)\s+/, "") } : { kind: "p" as const, text: l }));
-}
-
-function Lines({ lines }: { lines: Line[] }) {
-  const out: ReactNode[] = [];
-  let ul: Line[] = [];
-  const flush = (k: number) => {
-    if (ul.length) out.push(<ul key={"u" + k} className="e-list">{ul.map((l, i) => <li key={i}><Rich text={l.text} /></li>)}</ul>);
-    ul = [];
-  };
-  lines.forEach((l, i) => {
-    if (l.kind === "li") ul.push(l);
-    else { flush(i); out.push(<p key={i} className="e-p"><Rich text={l.text} /></p>); }
-  });
-  flush(lines.length);
-  return <>{out}</>;
-}
 
 export function dateRange(e: Entry): string {
   const end = e.current ? "Present" : e.endDate.trim();
@@ -80,31 +58,153 @@ export function dateRange(e: Entry): string {
   return start || end;
 }
 
-function Heading({ s }: { s: Section }) {
-  return <div className="cv-h" role="heading" aria-level={2}><span>{s.title}</span></div>;
+/* ---------------- small editing controls, never measured, never printed ---------------- */
+
+function Tool({ label, onClick, children, danger }: { label: string; onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; children: ReactNode; danger?: boolean }) {
+  return (
+    <button type="button" className={"tb" + (danger ? " danger" : "")} title={label} aria-label={label}
+      onMouseDown={(e) => e.preventDefault()} onClick={(e) => { e.stopPropagation(); onClick(e); }}>
+      {children}
+    </button>
+  );
 }
 
-function EntryHead({ e, tpl }: { e: Entry; tpl: TemplateDef }) {
-  const dates = dateRange(e);
-  const sub = [e.subtitle, tpl.entryStyle === "gutter" ? "" : e.location].filter((x) => x.trim()).join(", ");
+function SectionBar({ s, cv, tpl }: { s: Section; cv: Cv; tpl: TemplateDef }) {
+  const ed = useEdit();
+  if (!ed?.on || ed.measure) return null;
+  const twoCols = (cv.design.layout ?? tpl.layout) !== "single";
+  const kind = s.type === "summary" ? "text" : s.items.length || ["skills", "languages", "interests"].includes(s.type) ? "items" : "entries";
+  return (
+    <div className="edit-ui sec-bar" data-testid="section-bar">
+      {kind !== "text" && (
+        <Tool label={kind === "items" ? "Add item" : "Add entry"} onClick={() => ed.act(kind === "items" ? { t: "addItem", sid: s.id } : { t: "addEntry", sid: s.id })}>
+          <Plus /><span>{kind === "items" ? "Item" : "Entry"}</span>
+        </Tool>
+      )}
+      <Tool label="Move section up" onClick={() => ed.act({ t: "moveSection", sid: s.id, dir: -1 })}><ArrowUp /></Tool>
+      <Tool label="Move section down" onClick={() => ed.act({ t: "moveSection", sid: s.id, dir: 1 })}><ArrowDown /></Tool>
+      {twoCols && <Tool label={s.column === "side" ? "Move to main column" : "Move to sidebar"} onClick={() => ed.act({ t: "colSection", sid: s.id })}><ArrowLeftRight /></Tool>}
+      <Tool label="Hide section" onClick={() => ed.act({ t: "hideSection", sid: s.id })}><EyeOff /></Tool>
+      <Tool label="Delete section" danger onClick={() => ed.act({ t: "delSection", sid: s.id })}><Trash2 /></Tool>
+    </div>
+  );
+}
+
+function EntryBar({ s, e }: { s: Section; e: Entry }) {
+  const ed = useEdit();
+  if (!ed?.on || ed.measure) return null;
+  return (
+    <div className="edit-ui entry-bar" data-testid="entry-bar">
+      <Tool label="Add entry below" onClick={() => ed.act({ t: "addEntry", sid: s.id, after: e.id })}><Plus /></Tool>
+      {s.fields.bullets && <Tool label="Add bullet" onClick={() => ed.act({ t: "addBullet", sid: s.id, eid: e.id })}><span className="tb-txt">•+</span></Tool>}
+      <Tool label="Move up" onClick={() => ed.act({ t: "moveEntry", sid: s.id, eid: e.id, dir: -1 })}><ArrowUp /></Tool>
+      <Tool label="Move down" onClick={() => ed.act({ t: "moveEntry", sid: s.id, eid: e.id, dir: 1 })}><ArrowDown /></Tool>
+      <Tool label="Show or hide parts" onClick={(ev) => ed.act({ t: "entryMenu", sid: s.id, eid: e.id, anchor: ev.currentTarget.getBoundingClientRect() })}><Settings2 /></Tool>
+      <Tool label="Delete entry" danger onClick={() => ed.act({ t: "delEntry", sid: s.id, eid: e.id })}><Trash2 /></Tool>
+    </div>
+  );
+}
+
+/* ---------------- headings ---------------- */
+
+function Heading({ s, cv, tpl }: { s: Section; cv: Cv; tpl: TemplateDef }) {
+  const Icon = SECTION_ICONS[s.type] ?? Star;
+  return (
+    <div className="cv-h" role="heading" aria-level={2}>
+      {cv.design.headingIcons && <span className="h-ic"><Icon aria-hidden strokeWidth={2} /></span>}
+      <Ed path={`sec:${s.id}:title`} value={s.title} ph="Section title" className="h-tx" />
+      <SectionBar s={s} cv={cv} tpl={tpl} />
+    </div>
+  );
+}
+
+/* ---------------- entries ---------------- */
+
+function BulletLine({ s, e, i }: { s: Section; e: Entry; i: number }) {
+  const ed = useEdit();
+  return (
+    <li>
+      <Ed
+        path={`bul:${s.id}:${e.id}:${i}`}
+        value={e.bullets[i] ?? ""}
+        rich
+        ph="Describe an achievement"
+        onEnter={(el) => { const { before, after } = splitAtCaret(el); ed?.act({ t: "splitBullet", sid: s.id, eid: e.id, idx: i, before, after }); }}
+        onBackspaceEmpty={() => ed?.act({ t: "delBullet", sid: s.id, eid: e.id, idx: i })}
+      />
+    </li>
+  );
+}
+
+type Line = { kind: "desc" } | { kind: "bul"; i: number };
+
+function linesOf(s: Section, e: Entry, editing: boolean): Line[] {
+  const out: Line[] = [];
+  if (s.fields.description && (e.description || editing)) out.push({ kind: "desc" });
+  if (s.fields.bullets) e.bullets.forEach((b, i) => { if (b || editing) out.push({ kind: "bul", i }); });
+  return out;
+}
+
+function Lines({ s, e, lines }: { s: Section; e: Entry; lines: Line[] }) {
+  const out: ReactNode[] = [];
+  let run: number[] = [];
+  const flush = (k: string) => {
+    if (run.length) out.push(<ul key={k} className="e-list">{run.map((i) => <BulletLine key={i} s={s} e={e} i={i} />)}</ul>);
+    run = [];
+  };
+  lines.forEach((l, n) => {
+    if (l.kind === "bul") run.push(l.i);
+    else { flush("u" + n); out.push(<Ed key={"d" + n} as="p" className="e-p" path={`ent:${s.id}:${e.id}:description`} value={e.description} rich ph="Short description" />); }
+  });
+  flush("end");
+  return <>{out}</>;
+}
+
+const TITLE_PH: Partial<Record<SectionType, string>> = {
+  experience: "Job title", education: "Degree or qualification", projects: "Project name", certificates: "Certificate",
+  courses: "Course", awards: "Achievement", volunteering: "Role", strengths: "Strength", publications: "Title", references: "Name",
+};
+const SUB_PH: Partial<Record<SectionType, string>> = {
+  experience: "Company", education: "School or university", projects: "Your role", certificates: "Issued by",
+  courses: "Provider", volunteering: "Organisation", publications: "Publisher", references: "Job title and company",
+};
+const SINGLE_DATE: SectionType[] = ["certificates", "awards", "publications"];
+
+function Dates({ s, e, editing }: { s: Section; e: Entry; editing: boolean }) {
+  const p = (k: string) => `ent:${s.id}:${e.id}:${k}`;
+  if (!s.fields.dates || (!editing && !dateRange(e))) return null;
+  if (SINGLE_DATE.includes(s.type)) return <span className="e-date"><Ed path={p("endDate")} value={e.endDate} ph="Date" /></span>;
+  return (
+    <span className="e-date">
+      <Ed path={p("startDate")} value={e.startDate} ph="Start" />
+      {(editing || (e.startDate && (e.endDate || e.current))) && <span className="e-dash"> – </span>}
+      {e.current ? <span>Present</span> : <Ed path={p("endDate")} value={e.endDate} ph="End" />}
+    </span>
+  );
+}
+
+function EntryHead({ s, e, tpl, editing }: { s: Section; e: Entry; tpl: TemplateDef; editing: boolean }) {
+  const f = s.fields;
+  const p = (k: string) => `ent:${s.id}:${e.id}:${k}`;
+  const gutter = tpl.entryStyle === "gutter";
+  const sub = f.subtitle && (editing || e.subtitle) ? <Ed path={p("subtitle")} value={e.subtitle} ph={SUB_PH[s.type] ?? "Organisation"} className="e-org" /> : null;
+  const loc = f.location && !gutter && (editing || e.location) ? <Ed path={p("location")} value={e.location} ph="City" className="e-loc" /> : null;
   return (
     <>
-      {(e.title || (dates && tpl.entryStyle !== "gutter")) && (
-        <div className="e-top">
-          <div className="e-title">{e.title}</div>
-          {tpl.entryStyle !== "gutter" && dates && <div className="e-date">{dates}</div>}
-        </div>
-      )}
-      {sub && <div className="e-sub">{sub}</div>}
+      <div className="e-top">
+        <Ed path={p("title")} value={e.title} ph={TITLE_PH[s.type] ?? "Title"} className="e-title" />
+        {!gutter && <Dates s={s} e={e} editing={editing} />}
+      </div>
+      {(sub || loc) && <div className="e-sub">{sub}{sub && loc && <span className="e-sep" />}{loc}</div>}
     </>
   );
 }
 
-function EntryBlock({ e, tpl, lines, head }: { e: Entry; tpl: TemplateDef; lines: Line[]; head?: ReactNode }) {
+function EntryView({ s, e, tpl, lines, editing, head }: { s: Section; e: Entry; tpl: TemplateDef; lines: Line[]; editing: boolean; head?: ReactNode }) {
   const body = (
     <>
-      <EntryHead e={e} tpl={tpl} />
-      {lines.length > 0 && <div className="e-desc"><Lines lines={lines} /></div>}
+      <EntryHead s={s} e={e} tpl={tpl} editing={editing} />
+      {lines.length > 0 && <div className="e-desc"><Lines s={s} e={e} lines={lines} /></div>}
     </>
   );
   if (tpl.entryStyle === "gutter") {
@@ -113,55 +213,115 @@ function EntryBlock({ e, tpl, lines, head }: { e: Entry; tpl: TemplateDef; lines
         {head}
         <div className="entry gutter">
           <div className="e-when">
-            <div className="e-date">{dateRange(e)}</div>
-            {e.location && <div className="e-loc">{e.location}</div>}
+            <Dates s={s} e={e} editing={editing} />
+            {s.fields.location && (editing || e.location) && <Ed as="div" path={`ent:${s.id}:${e.id}:location`} value={e.location} ph="City" className="e-loc" />}
           </div>
           <div className="e-main">{body}</div>
+          <EntryBar s={s} e={e} />
         </div>
       </>
     );
   }
-  return <>{head}<div className="entry">{body}</div></>;
+  return <>{head}<div className={"entry" + (tpl.entryStyle === "timeline" ? " tl" : "")}>{body}<EntryBar s={s} e={e} /></div></>;
 }
 
-function Dots({ level }: { level: number }) {
+/* ---------------- skills, languages, interests ---------------- */
+
+function Ring({ level }: { level: number }) {
+  const c = 2 * Math.PI * 15;
   return (
-    <span className="lvl-dots" aria-label={`${level} of 5`}>
-      {[1, 2, 3, 4, 5].map((k) => <i key={k} className={k <= level ? "on" : ""} />)}
+    <svg className="ring" viewBox="0 0 36 36" aria-hidden>
+      <circle cx="18" cy="18" r="15" className="ring-bg" />
+      <circle cx="18" cy="18" r="15" className="ring-fg" strokeDasharray={`${(c * level) / 5} ${c}`} transform="rotate(-90 18 18)" />
+    </svg>
+  );
+}
+
+function Levels({ s, it, style }: { s: Section; it: Item; style: string }) {
+  const ed = useEdit();
+  const live = !!ed?.on && !ed.measure;
+  const set = (k: number) => { if (live) ed!.act({ t: "level", sid: s.id, iid: it.id, level: it.level === k ? 0 : k }); };
+  if (!it.level && !ed?.on) return null;
+  if (style === "bars") {
+    return (
+      <span className="lvl-bar">
+        <i style={{ width: `${it.level * 20}%` }} />
+        {live && [1, 2, 3, 4, 5].map((k) => <button key={k} type="button" className="lvl-hit" style={{ left: `${(k - 1) * 20}%` }} onMouseDown={(e) => e.preventDefault()} onClick={() => set(k)} aria-label={`Level ${k}`} />)}
+      </span>
+    );
+  }
+  return (
+    <span className={style === "blocks" ? "lvl-blocks" : "lvl-dots"} aria-label={`${it.level} of 5`}>
+      {[1, 2, 3, 4, 5].map((k) => live
+        ? <button key={k} type="button" className={k <= it.level ? "on" : ""} onMouseDown={(e) => e.preventDefault()} onClick={() => set(k)} aria-label={`Level ${k}`} />
+        : <i key={k} className={k <= it.level ? "on" : ""} />)}
     </span>
   );
 }
 
 function ItemsBlock({ s, cv }: { s: Section; cv: Cv }) {
-  const style = s.type === "interests" ? "tags" : cv.design.skillStyle;
-  const items = s.items.filter((i) => i.name.trim());
-  const label = (i: Item) => (s.type === "languages" ? LANGUAGE_LABELS : LEVEL_LABELS)[i.level] ?? "";
+  const ed = useEdit();
+  const editing = !!ed?.on;
+  const live = editing && !ed!.measure;
+  const base = cv.design.skillStyle;
+  const style = s.type === "interests" ? "tags" : base;
+  const items = s.items.filter((i) => editing || i.name.trim());
+  const labels = s.type === "languages" ? LANGUAGE_LABELS : LEVEL_LABELS;
+  const name = (it: Item) => (
+    <Ed path={`item:${s.id}:${it.id}`} value={it.name} ph={s.type === "languages" ? "Language" : s.type === "interests" ? "Interest" : "Skill"} className="nm"
+      onEnter={() => ed?.act({ t: "addItem", sid: s.id, after: it.id })}
+      onBackspaceEmpty={() => ed?.act({ t: "delItem", sid: s.id, iid: it.id })} />
+  );
+  const del = (it: Item) => live && (
+    <button type="button" className="edit-ui item-x" aria-label="Remove" onMouseDown={(e) => e.preventDefault()} onClick={() => ed!.act({ t: "delItem", sid: s.id, iid: it.id })}><X /></button>
+  );
   if (style === "tags") {
-    return <div className="tags">{items.map((i) => <span key={i.id} className="tag">{i.name}</span>)}</div>;
+    return <div className="tags">{items.map((it) => <span key={it.id} className="tag">{name(it)}{del(it)}</span>)}</div>;
   }
   if (style === "text") {
     return (
       <ul className="plain">
-        {items.map((i) => <li key={i.id}><span>{i.name}</span>{i.level > 0 && <span className="lvl-text">{label(i)}</span>}</li>)}
+        {items.map((it) => <li key={it.id}>{name(it)}{it.level > 0 && <span className="lvl-text">{labels[it.level]}</span>}{del(it)}</li>)}
+      </ul>
+    );
+  }
+  if (style === "rings") {
+    return (
+      <ul className="levels rings">
+        {items.map((it) => (
+          <li key={it.id}>
+            <span className="ring-wrap" onClick={live ? () => ed!.act({ t: "level", sid: s.id, iid: it.id, level: it.level >= 5 ? 1 : it.level + 1 }) : undefined}>
+              <Ring level={it.level} />
+            </span>
+            {name(it)}{del(it)}
+          </li>
+        ))}
       </ul>
     );
   }
   return (
     <ul className={"levels " + style}>
-      {items.map((i) => (
-        <li key={i.id}>
-          <span className="nm">{i.name}</span>
-          {i.level > 0 && (style === "bars"
-            ? <span className="lvl-bar"><i style={{ width: `${i.level * 20}%` }} /></span>
-            : <Dots level={i.level} />)}
+      {items.map((it) => (
+        <li key={it.id}>
+          {name(it)}
+          <Levels s={s} it={it} style={style} />
+          {del(it)}
         </li>
       ))}
     </ul>
   );
 }
 
+/* ---------------- identity ---------------- */
+
+const DETAIL_PH: Partial<Record<DetailIcon, string>> = {
+  email: "Email", phone: "Phone", location: "City, Country", website: "Website", linkedin: "LinkedIn", github: "Portfolio",
+  calendar: "Date of birth", flag: "Nationality", car: "Driving licence",
+};
+
 export function DetailsList({ details, icons }: { details: Detail[]; icons: boolean }) {
-  const list = details.filter((d) => d.value.trim());
+  const ed = useEdit();
+  const list = details.filter((d) => ed?.on || d.value.trim());
   if (!list.length) return null;
   return (
     <ul className="contacts">
@@ -170,7 +330,7 @@ export function DetailsList({ details, icons }: { details: Detail[]; icons: bool
         return (
           <li key={d.id}>
             {icons && <Icon className="ic" aria-hidden strokeWidth={2} />}
-            <span>{d.value}</span>
+            <Ed path={`detail:${d.id}`} value={d.value} ph={DETAIL_PH[d.icon] ?? "Detail"} />
           </li>
         );
       })}
@@ -179,22 +339,31 @@ export function DetailsList({ details, icons }: { details: Detail[]; icons: bool
 }
 
 export function Photo({ cv }: { cv: Cv }) {
+  const ed = useEdit();
   const p = cv.data.personal;
-  if (!cv.design.showPhoto || !p.photo) return null;
+  const live = !!ed?.on && !ed.measure;
+  if (!cv.design.showPhoto || (!p.photo && !ed?.on)) return null;
   return (
-    <div className={"photo " + cv.design.photoShape}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- data URLs and print need a plain img */}
-      <img src={p.photo} alt="" />
+    <div className={"photo " + cv.design.photoShape + (p.photo ? "" : " empty")} onClick={live ? () => ed!.act({ t: "photo" }) : undefined}>
+      {p.photo
+        // eslint-disable-next-line @next/next/no-img-element -- data URLs and print need a plain img
+        ? <img src={p.photo} alt="" />
+        : <span className="photo-ph"><User aria-hidden /></span>}
+      {live && <span className="edit-ui photo-edit">{p.photo ? "Change photo" : "Add photo"}</span>}
     </div>
   );
+}
+
+export function initials(name: string): string {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "CV";
 }
 
 export function Identity({ cv }: { cv: Cv }) {
   const p = cv.data.personal;
   return (
     <div className="who">
-      <div className="cv-name">{p.fullName || "Your Name"}</div>
-      {p.jobTitle && <div className="cv-title">{p.jobTitle}</div>}
+      <Ed as="div" path="name" value={p.fullName} ph="Your Name" className="cv-name" />
+      {cv.design.showTitle && <Ed as="div" path="title" value={p.jobTitle} ph="Job title you want" className="cv-title" />}
     </div>
   );
 }
@@ -203,76 +372,75 @@ export function Identity({ cv }: { cv: Cv }) {
 export function Header({ cv, tpl }: { cv: Cv; tpl: TemplateDef }) {
   return (
     <header className={"cv-head" + (tpl.header === "banner" ? " banner" : "")}>
+      <span className="monogram" aria-hidden><span>{initials(cv.data.personal.fullName)}</span></span>
       <Photo cv={cv} />
       <div className="head-text">
         <Identity cv={cv} />
         <DetailsList details={cv.data.personal.details} icons={cv.design.showIcons} />
       </div>
+      <svg className="head-wave" viewBox="0 0 800 60" preserveAspectRatio="none" aria-hidden>
+        <path d="M0,0 L800,0 L800,22 C620,70 420,-10 230,30 C130,52 50,40 0,26 Z" />
+      </svg>
     </header>
   );
 }
 
-export function buildBlocks(cv: Cv, tpl: TemplateDef): Block[] {
+/* ---------------- blocks ---------------- */
+
+export function buildBlocks(cv: Cv, tpl: TemplateDef, editing: boolean): Block[] {
   const out: Block[] = [];
-  const hasSide = tpl.layout !== "single";
+  const layout = cv.design.layout ?? tpl.layout;
+  const hasSide = layout !== "single";
   const col = (s: Section) => (hasSide ? s.column : "main");
 
-  if (tpl.header === "side") {
-    out.push({
-      key: "ident", column: "side",
-      node: <div className="side-ident"><Photo cv={cv} /><Identity cv={cv} /></div>,
-    });
-    out.push({
-      key: "contacts", column: "side",
-      node: <div className="side-contacts"><DetailsList details={cv.data.personal.details} icons={cv.design.showIcons} /></div>,
-    });
+  if (tpl.header === "side" && hasSide) {
+    out.push({ key: "ident", column: "side", node: <div className="side-ident"><Photo cv={cv} /><Identity cv={cv} /></div> });
+    out.push({ key: "contacts", column: "side", node: <div className="side-contacts"><DetailsList details={cv.data.personal.details} icons={cv.design.showIcons} /></div> });
   }
 
   for (const s of cv.data.sections) {
     if (s.hidden) continue;
     const column = col(s);
-    const head = <Heading s={s} />;
+    const head = <Heading s={s} cv={cv} tpl={tpl} />;
     const base = { column, sectionId: s.id } as const;
+    const startAt = out.length;
 
     if (s.type === "summary") {
-      if (!s.text.trim()) { out.push({ ...base, key: s.id, node: <div className="sec">{head}</div> }); continue; }
-      const lines = parseLines(s.text);
-      out.push({ ...base, key: s.id, node: <div className="sec">{head}<div className="summary"><Lines lines={lines} /></div></div> });
-      continue;
-    }
-
-    if (s.items.length || ["skills", "languages", "interests"].includes(s.type)) {
+      out.push({ ...base, key: s.id, node: <div className="sec">{head}<Ed as="div" className="summary" path={`sec:${s.id}:text`} value={s.text} rich ph="Two to four lines on who you are and what you bring." /></div> });
+    } else if (s.items.length || ["skills", "languages", "interests"].includes(s.type)) {
       out.push({ ...base, key: s.id, node: <div className="sec">{head}<ItemsBlock s={s} cv={cv} /></div> });
-      continue;
-    }
-
-    const entries = s.entries.length ? s.entries : [];
-    if (!entries.length) { out.push({ ...base, key: s.id, node: <div className="sec">{head}</div> }); continue; }
-    entries.forEach((e, i) => {
-      const lines = parseLines(e.description);
-      /* keep the head with its first two lines; later lines may carry over */
-      const firstCut = Math.min(lines.length, 2);
-      out.push({
-        ...base,
-        key: `${s.id}:${e.id}`,
-        node: (
-          <div className={"sec-part" + (i === 0 ? " sec first" : " next")}>
-            <EntryBlock e={e} tpl={tpl} lines={lines.slice(0, firstCut)} head={i === 0 ? head : undefined} />
-          </div>
-        ),
-      });
-      lines.slice(firstCut).forEach((l, j) => {
+    } else if (!s.entries.length) {
+      out.push({ ...base, key: s.id, node: <div className="sec">{head}</div> });
+    } else {
+      s.entries.forEach((e, i) => {
+        const lines = linesOf(s, e, editing);
+        /* keep the head with its first two lines; later lines may carry over */
+        const cut = Math.min(lines.length, 2);
         out.push({
           ...base,
-          key: `${s.id}:${e.id}:${j}`,
+          key: `${s.id}:${e.id}`,
+          entryStart: i > 0,
           node: (
-            <div className={"cont" + (tpl.entryStyle === "gutter" ? " gutter" : "")}>
-              <div className="e-desc"><Lines lines={[l]} /></div>
+            <div className={i === 0 ? "sec" : "sec-part"}>
+              <EntryView s={s} e={e} tpl={tpl} lines={lines.slice(0, cut)} editing={editing} head={i === 0 ? head : undefined} />
             </div>
           ),
         });
+        lines.slice(cut).forEach((l, j) => {
+          out.push({
+            ...base,
+            key: `${s.id}:${e.id}:${l.kind === "bul" ? "b" + l.i : "d"}:${j}`,
+            node: (
+              <div className={"cont" + (tpl.entryStyle === "gutter" ? " gutter" : tpl.entryStyle === "timeline" ? " tl" : "")}>
+                <div className="e-desc"><Lines s={s} e={e} lines={[l]} /></div>
+              </div>
+            ),
+          });
+        });
       });
-    });
+    }
+    const n = out.length - startAt;
+    out.slice(startAt).forEach((b, k) => { b.pos = n === 1 ? "only" : k === 0 ? "first" : k === n - 1 ? "last" : "mid"; });
   }
   return out;
 }

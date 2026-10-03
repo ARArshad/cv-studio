@@ -4,7 +4,7 @@ import { TemplateGallery } from "@/components/site/TemplateGallery";
 
 export const metadata: Metadata = {
   title: "CV templates",
-  description: "Ten professional CV templates, from one column designs that pass applicant tracking systems to bold two column layouts.",
+  description: "Twenty professional CV templates, premium designs included free, from one column designs that pass applicant tracking systems to bold two column layouts.",
 };
 
 export default function TemplatesPage() {

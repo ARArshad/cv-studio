@@ -36,9 +36,12 @@ if (!BASE) {
   }
 }
 
+const TEMPLATES = ["pulse", "cascade", "monarch", "horizon", "mosaic", "nordic", "apex", "bloom", "sterling", "orbit",
+  "aurora", "meridian", "summit", "atlas", "harbor", "vertex", "chronicle", "ledger", "linen", "prism"];
+
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "cv-e2e-"));
 const browser = await chromium.launch();
-const ctx = await browser.newContext({ viewport: { width: 1440, height: 950 }, acceptDownloads: true });
+const ctx = await browser.newContext({ viewport: { width: 1500, height: 950 }, acceptDownloads: true });
 await ctx.addInitScript(() => { window.__printed = 0; window.print = () => { window.__printed += 1; }; });
 const page = await ctx.newPage();
 const errors = [];
@@ -46,149 +49,216 @@ page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
 page.on("console", (m) => { if (m.type() === "error") errors.push("console: " + m.text()); });
 page.on("dialog", (d) => d.accept());
 
-const preview = () => page.getByTestId("preview");
-const previewText = async () => (await preview().locator(".cv-pages").innerText());
-const pageCount = async () => preview().locator(".cv-pages .cv-page").count();
+const P = "[data-testid=preview] .cv-pages";
+const doc = () => page.locator(P);
+const text = async () => doc().innerText();
+const pageCount = async () => page.locator(`${P} > .cv-page`).count();
+const field = (p) => page.locator(`${P} [data-path="${p}"]`);
+const caretToEnd = (loc) => loc.evaluate((el) => {
+  el.focus();
+  const r = document.createRange(); r.selectNodeContents(el); r.collapse(false);
+  const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+});
+const tool = async (id) => { await page.locator(`[data-tool="${id}"]`).click(); await page.waitForTimeout(250); };
 
 try {
   /* landing */
   await page.goto(BASE + "/");
   check("landing page has a headline", await page.locator("h1").innerText(), (t) => t.includes("professional CV"));
   await page.waitForTimeout(800);
-  check("landing page shows template previews", await page.locator(".cv-page").count(), (n) => n >= 5);
+  check("landing page shows template previews with premium badges", await page.getByText("PREMIUM, FREE").count(), (n) => n >= 5);
 
   /* landing call to action opens the new CV dialog */
   await page.getByTestId("hero-cta").click();
   await page.waitForURL(/dashboard/);
   await page.getByTestId("new-title").waitFor();
-  check("call to action opens the new CV dialog", await page.getByTestId("new-title").isVisible(), true);
-
-  /* create from the example in the Atlas template */
   await page.getByTestId("new-title").fill("Marketing roles");
-  await page.locator('[role=dialog] [data-template="atlas"]').click();
+  await page.locator('[role=dialog] [data-template="sterling"]').click();
   await page.getByTestId("new-create").click();
   await page.waitForURL(/\/editor\//);
-  await preview().locator(".cv-pages .cv-page").first().waitFor();
-  check("editor opens with the chosen template", await preview().locator(".cv-pages .cv-page").first().getAttribute("class"), (c) => c.includes("tpl-atlas"));
-  check("example content is on the page", await previewText(), (t) => t.includes("Brightline Software"));
-  check("the CV name shows in the top bar", await page.getByTestId("cv-name").inputValue(), "Marketing roles");
+  await page.locator(`${P} > .cv-page`).first().waitFor();
+  check("editor opens with the chosen template", await page.locator(`${P} > .cv-page`).first().getAttribute("class"), (c) => c.includes("tpl-sterling"));
+  check("example content is on the page", (await text()).includes("Brightline Software"), true);
 
-  /* typing updates the preview */
-  await page.getByTestId("full-name").fill("Sam Taylor");
+  /* typing straight on the page */
+  const name = field("name");
+  await name.click();
+  await page.keyboard.press("Meta+A");
+  await page.keyboard.type("Sam Taylor");
   await page.waitForTimeout(300);
-  check("name change shows on the page", await preview().locator(".cv-pages .cv-name").first().innerText(), "Sam Taylor");
+  check("the name can be typed on the page", await name.innerText(), "Sam Taylor");
+  check("the field keeps focus while typing", await page.evaluate(() => document.activeElement?.dataset?.path), "name");
 
   /* undo and redo */
+  await page.evaluate(() => document.activeElement?.blur());
   await page.getByTestId("undo").click();
-  await page.waitForTimeout(200);
-  check("undo restores the name", await preview().locator(".cv-pages .cv-name").first().innerText(), "Alex Morgan");
+  await page.waitForTimeout(250);
+  check("undo restores the name", await name.innerText(), "Alex Morgan");
   await page.getByTestId("redo").click();
-  await page.waitForTimeout(200);
-  check("redo puts it back", await preview().locator(".cv-pages .cv-name").first().innerText(), "Sam Taylor");
+  await page.waitForTimeout(250);
+  check("redo puts it back", await name.innerText(), "Sam Taylor");
 
-  /* edit a job: open experience, open first job, add a bullet */
-  const exp = page.locator('[data-testid=section-card]', { hasText: "Work Experience" });
-  await exp.getByTestId("section-toggle").click();
-  await exp.getByTestId("entry-toggle").first().click();
-  const desc = exp.getByTestId("entry-description").first();
-  await desc.click();
-  await desc.evaluate((el) => el.setSelectionRange(el.value.length, el.value.length));
-  await desc.press("Enter");
+  /* bullets: Enter starts the next one, Backspace on an empty one removes it */
+  const firstBullet = page.locator(`${P} [data-path^="bul:"]`).first();
+  const bullets = () => page.locator(`${P} [data-path^="bul:"]`).count();
+  const before = await bullets();
+  await caretToEnd(firstBullet);
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(250);
   await page.keyboard.type("Opened three new regional markets.");
-  await page.waitForTimeout(500);
-  check("enter in a bullet starts a new bullet", await previewText(), (t) => t.includes("Opened three new regional markets."));
-
-  /* clicking a section on the page opens it in the panel */
-  await preview().locator('.cv-pages .blk[data-section]', { hasText: "EDUCATION" }).first().click();
   await page.waitForTimeout(400);
-  check("clicking the page opens that section", await page.locator('[data-testid=section-card]', { hasText: "Education" }).getByTestId("section-title").inputValue(), "Education");
+  check("Enter in a bullet starts a new bullet", (await text()).includes("Opened three new regional markets."), true);
+  check("there is one more bullet", (await bullets()) - before, 1);
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(250);
+  await page.keyboard.press("Backspace");
+  await page.waitForTimeout(250);
+  check("Backspace on an empty bullet removes it", (await bullets()) - before, 1);
 
-  /* hide a section */
-  const interests = page.locator('[data-testid=section-card]', { hasText: "Interests" });
-  await interests.getByTestId("section-hide").click();
+  /* bold */
+  await page.keyboard.press("Shift+Home");
+  await page.keyboard.press("Meta+B");
   await page.waitForTimeout(300);
-  check("a hidden section leaves the page", await previewText(), (t) => !t.includes("Fell running"));
-  await interests.getByTestId("section-hide").click();
+  check("Cmd B makes text bold", await page.locator(`${P} li b`, { hasText: "regional markets" }).count(), (n) => n >= 1);
 
-  /* add a section */
-  await page.getByTestId("add-section").click();
+  /* the section toolbar */
+  const interests = page.locator(`${P} .cv-h`, { hasText: "Interests" });
+  await interests.hover();
+  await interests.getByLabel("Hide section").click();
+  await page.waitForTimeout(300);
+  check("a section can be hidden from its toolbar", (await text()).includes("Fell running"), false);
+  await tool("arrange");
+  await page.locator("[data-testid=arrange-row]", { hasText: "Interests" }).getByTestId("arrange-hide").click();
+  await page.waitForTimeout(300);
+  check("and shown again from Rearrange", (await text()).includes("Fell running"), true);
+  await tool("arrange");
+
+  /* add an entry from the toolbar, and type into it */
+  const edu = page.locator(`${P} .cv-h`, { hasText: "Education" });
+  await edu.hover();
+  await edu.getByLabel("Add entry").click();
+  await page.waitForTimeout(300);
+  await page.keyboard.type("MSc Data Science");
+  await page.waitForTimeout(300);
+  check("a new entry takes focus and can be typed into", (await text()).includes("MSc Data Science"), true);
+
+  /* the entry menu shows and hides parts */
+  const entry = page.locator(`${P} .entry`, { hasText: "MSc Data Science" });
+  await entry.hover();
+  await entry.getByLabel("Show or hide parts").click();
+  await page.getByTestId("field-bullets").click();
+  await page.waitForTimeout(250);
+  await page.keyboard.press("Escape");
+  check("bullets can be switched on for a section", await entry.locator("li").count(), (n) => n >= 1);
+
+  /* add a section from the drawer */
+  await tool("add");
   await page.locator('[data-add="projects"]').click();
-  const proj = page.locator('[data-testid=section-card]', { hasText: "Projects" });
-  await proj.getByTestId("entry-title").fill("Pricing calculator");
-  await page.waitForTimeout(300);
-  check("a new section shows on the page", await previewText(), (t) => t.includes("PROJECTS") && t.includes("Pricing calculator"));
+  await page.waitForTimeout(400);
+  check("a new section appears on the page", (await text()).includes("PROJECTS"), true);
 
-  /* design */
-  await page.locator('[data-tab="design"]').click();
-  await page.locator('[data-color="#15803d"]').click();
+  /* themes, page and layout */
+  await page.getByTestId("tb-themes").click();
+  await page.locator('[data-theme="Emerald"]').click();
   await page.waitForTimeout(200);
-  check("colour applies to the page", await preview().locator(".cv-pages .cv-page").first().evaluate((e) => e.style.getPropertyValue("--accent")), "#15803d");
+  check("a colour theme applies", await page.locator(`${P} > .cv-page`).first().evaluate((e) => e.style.getPropertyValue("--accent")), "#059669");
+  await page.locator('[data-backdrop="dots"]').click();
+  check("a background applies", await page.locator(`${P} > .cv-page`).first().getAttribute("class"), (c) => c.includes("bd-dots"));
+  await page.keyboard.press("Escape");
+
+  await page.getByTestId("tb-page").click();
   await page.locator('[data-testid=skill-style] [data-value="bars"]').click();
   await page.waitForTimeout(200);
-  check("skill levels can be bars", await preview().locator(".cv-pages .lvl-bar").count(), (n) => n > 0);
-  await page.locator('[data-testid=photo-shape] [data-value="off"]').click();
+  check("skill levels can be bars", await page.locator(`${P} .lvl-bar`).count(), (n) => n > 0);
+  await page.locator('[data-testid=skill-style-2] [data-value="rings"]').click();
   await page.waitForTimeout(200);
-  check("the photo can be hidden", await preview().locator(".cv-pages .photo").count(), 0);
+  check("or rings", await page.locator(`${P} .ring`).count(), (n) => n > 0);
+  await page.keyboard.press("Escape");
 
-  /* templates keep the content */
-  await page.locator('[data-tab="templates"]').click();
-  for (const id of ["aurora", "meridian", "summit", "harbor", "vertex", "chronicle", "ledger", "linen", "prism", "atlas"]) {
-    await page.locator(`[data-testid=panel] [data-template="${id}"]`).click();
+  await page.getByTestId("tb-layout").click();
+  await page.locator('[data-layout="single"]').click();
+  await page.waitForTimeout(300);
+  check("the layout can change to one column", await page.locator(`${P} > .cv-page`).first().getAttribute("class"), (c) => c.includes("layout-single"));
+  await page.locator('[data-layout="right"]').click();
+  await page.getByTestId("toggle-photo").click();
+  await page.waitForTimeout(250);
+  check("the photo can be hidden", await page.locator(`${P} .photo`).count(), 0);
+  await page.keyboard.press("Escape");
+
+  await page.getByTestId("tb-fonts").click();
+  await page.locator('[data-testid=fontHeading] [data-font="playfair"]').click();
+  await page.waitForTimeout(200);
+  check("a heading font applies", await page.locator(`${P} > .cv-page`).first().evaluate((e) => e.style.getPropertyValue("--font-head")), (v) => v.includes("playfair"));
+  await page.keyboard.press("Escape");
+
+  /* every template keeps the content */
+  await tool("templates");
+  for (const id of TEMPLATES) {
+    await page.locator(`[data-testid=drawer] [data-template="${id}"]`).click();
     await page.waitForTimeout(250);
-    const cls = await preview().locator(".cv-pages .cv-page").first().getAttribute("class");
-    const text = await previewText();
-    check(`${id} renders with the content`, [cls.includes(`tpl-${id}`), text.includes("Pricing calculator"), text.toLowerCase().includes("sam taylor")].join(","), "true,true,true");
+    const cls = await page.locator(`${P} > .cv-page`).first().getAttribute("class");
+    const t = (await text()).toLowerCase();
+    check(`${id} renders with the content`, [cls.includes(`tpl-${id}`), t.includes("sam taylor"), t.includes("msc data science")].join(","), "true,true,true");
   }
+  await tool("templates");
+
+  /* phrases go into the job being edited */
+  await caretToEnd(page.locator(`${P} [data-path^="bul:"]`).first());
+  await tool("phrases");
+  await page.getByTestId("phrase").first().click();
+  await page.waitForTimeout(300);
+  check("a phrase becomes a bullet", (await text()).includes("Results driven"), true);
+  await tool("phrases");
 
   /* long CVs flow onto more pages, and the PDF has the same number */
-  await page.locator('[data-tab="content"]').click();
-  await exp.getByTestId("section-toggle").click();
-  const before = await pageCount();
+  const exp = page.locator(`${P} .cv-h`, { hasText: "Experience" });
+  const p0 = await pageCount();
   for (let i = 0; i < 4; i++) {
-    await exp.getByTestId("add-entry").click();
-    await exp.getByTestId("entry-title").last().fill(`Extra job ${i + 1}`);
-    await exp.getByTestId("entry-description").last().fill(Array.from({ length: 6 }, (_, k) => `- Delivered result number ${k + 1} with measurable impact for the team and the customer.`).join("\n"));
+    await exp.hover();
+    await exp.getByLabel("Add entry").click();
+    await page.waitForTimeout(200);
+    await page.keyboard.type(`Extra job ${i + 1}`);
+    for (let k = 0; k < 5; k++) {
+      const job = page.locator(`${P} .entry`, { hasText: `Extra job ${i + 1}` }).first();
+      await job.hover();
+      await job.getByLabel("Add bullet").click();
+      await page.waitForTimeout(120);
+      await page.keyboard.type(`Delivered result number ${k + 1} with measurable impact for the team and the customer.`);
+    }
   }
   await page.waitForTimeout(800);
-  const after = await pageCount();
-  check("a long CV runs onto more pages", after > before, true);
-  check("the page counter agrees", await page.getByTestId("page-count").innerText(), `${after} pages`);
-  const overflow = await preview().locator(".cv-pages .cv-page").evaluateAll((pages) => pages.some((p) => [...p.querySelectorAll(".col")].some((c) => c.scrollHeight > c.clientHeight + 2)));
+  const pages = await pageCount();
+  check("a long CV runs onto more pages", pages > p0, true);
+  check("the page counter agrees", await page.getByTestId("page-count").innerText(), `${pages} pages`);
+  const overflow = await page.locator(`${P} > .cv-page`).evaluateAll((ps) => ps.some((p) => [...p.querySelectorAll(".col")].some((c) => c.scrollHeight > c.clientHeight + 2)));
   check("no page overflows its column", overflow, false);
 
   await page.getByTestId("download-pdf").click();
   await page.waitForTimeout(300);
-  check("download PDF opens the print dialog", await page.evaluate(() => window.__printed), 1);
+  check("Download PDF opens the print dialog", await page.evaluate(() => window.__printed), 1);
   const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: false });
-  check("the PDF has one page per sheet", pdfPages(pdf), after);
-  const pdfText = pdf.toString("latin1");
-  check("the PDF is A4", /MediaBox \[0 0 59[45](\.\d+)? 84[12](\.\d+)?\]/.test(pdfText), true);
+  check("the PDF has one page per sheet", pdfPages(pdf), pages);
+  check("the PDF is A4", /MediaBox \[0 0 59[45](\.\d+)? 84[12](\.\d+)?\]/.test(pdf.toString("latin1")), true);
 
   /* everything survives a reload */
   await page.reload();
-  await preview().locator(".cv-pages .cv-page").first().waitFor();
+  await page.locator(`${P} > .cv-page`).first().waitFor();
   await page.waitForTimeout(400);
-  check("changes survive a reload", (await previewText()).includes("Extra job 4"), true);
+  check("changes survive a reload", (await text()).includes("Extra job 4"), true);
 
   /* the dashboard */
   await page.getByTestId("back").click();
   await page.waitForURL(/dashboard/);
   await page.getByTestId("cv-card").first().waitFor();
   check("the CV is listed", await page.getByTestId("cv-title").first().innerText(), "Marketing roles");
-
-  /* rename */
   await page.getByTestId("cv-title").first().click();
   await page.getByTestId("rename-input").fill("Marketing, London");
   await page.getByTestId("rename-input").press("Enter");
   check("rename from the card", await page.getByTestId("cv-title").first().innerText(), "Marketing, London");
-
-  /* duplicate */
   await page.getByTestId("card-menu").first().click();
   await page.getByRole("button", { name: "Duplicate" }).click();
   await page.waitForTimeout(300);
   check("duplicate adds a card", await page.getByTestId("cv-card").count(), 2);
-
-  /* download a copy, delete, import it back */
   await page.getByTestId("card-menu").first().click();
   const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download a copy" }).click()]);
   const saved = path.join(TMP, dl.suggestedFilename());
@@ -200,10 +270,31 @@ try {
   check("delete removes a card", await page.getByTestId("cv-card").count(), 1);
   await page.getByTestId("import-file").setInputFiles(saved);
   await page.waitForURL(/\/editor\//);
-  await preview().locator(".cv-pages .cv-page").first().waitFor();
-  check("an imported copy opens in the editor", (await previewText()).includes("Extra job 4"), true);
+  await page.locator(`${P} > .cv-page`).first().waitFor();
+  check("an imported copy opens in the editor", (await text()).includes("Extra job 4"), true);
 
-  /* a CV saved by the earlier single file app imports too */
+  /* a file saved by the first Next.js version: "- " bullets and **bold** */
+  const v1 = path.join(TMP, "v1.json");
+  fs.writeFileSync(v1, JSON.stringify({ kind: "cv-studio/cv", version: 1, cv: {
+    title: "Old format", data: {
+      personal: { fullName: "Riley Chen", jobTitle: "Nurse", photo: "", details: [] },
+      sections: [
+        { id: "a", type: "summary", title: "Profile", column: "main", hidden: false, text: "Caring nurse with **ten years** on wards.", entries: [], items: [] },
+        { id: "b", type: "experience", title: "Work", column: "main", hidden: false, text: "", items: [], entries: [
+          { id: "e", title: "Staff Nurse", subtitle: "City Hospital", location: "", startDate: "2015", endDate: "", current: true, description: "- Led a team of six.\n- Cut waiting times." },
+        ] },
+      ],
+    }, design: { template: "aurora" },
+  } }));
+  await page.getByTestId("back").click();
+  await page.waitForURL(/dashboard/);
+  await page.getByTestId("import-file").setInputFiles(v1);
+  await page.waitForURL(/\/editor\//);
+  await page.locator(`${P} > .cv-page`).first().waitFor();
+  check("first version bullets become bullets", await page.locator(`${P} li`, { hasText: "Cut waiting times." }).count(), 1);
+  check("first version bold stays bold", await page.locator(`${P} .summary b`).innerText(), "ten years");
+
+  /* a .cvjson from the single file app */
   const legacy = path.join(TMP, "old.cvjson");
   fs.writeFileSync(legacy, JSON.stringify({
     v: 2,
@@ -219,10 +310,10 @@ try {
   await page.waitForURL(/dashboard/);
   await page.getByTestId("import-file").setInputFiles(legacy);
   await page.waitForURL(/\/editor\//);
-  await preview().locator(".cv-pages .cv-page").first().waitFor();
-  const lt = await previewText();
+  await page.locator(`${P} > .cv-page`).first().waitFor();
+  const lt = await text();
   check("an old .cvjson imports with its content", lt.includes("Jordan Blake") && lt.includes("Rowland Building") && lt.includes("Tested circuits."), true);
-  check("old bold text stays bold", await preview().locator(".cv-pages .summary strong").first().innerText(), "seven years");
+  check("old bold text stays bold", await page.locator(`${P} .summary b`).first().innerText(), "seven years");
 
   /* blank CV */
   await page.goto(BASE + "/dashboard");
@@ -230,9 +321,10 @@ try {
   await page.locator('[data-start="blank"]').click();
   await page.getByTestId("new-create").click();
   await page.waitForURL(/\/editor\//);
-  await preview().locator(".cv-pages .cv-page").first().waitFor();
-  check("a blank CV has no example content", (await previewText()).includes("Brightline"), false);
-  check("a blank CV scores low with tips", await page.getByTestId("score").innerText(), (t) => parseInt(t.replace(/\D/g, ""), 10) < 50);
+  await page.locator(`${P} > .cv-page`).first().waitFor();
+  check("a blank CV has no example content", (await text()).includes("Brightline"), false);
+  check("a blank CV shows placeholders to type into", await page.locator(`${P} [data-path=name]`).getAttribute("data-ph"), "Your Name");
+  check("a blank CV has issues to fix", await page.getByTestId("issue-count").innerText(), (t) => Number(t) >= 6);
 
   /* an unknown CV id goes back to the dashboard */
   await page.goto(BASE + "/editor/nope");

@@ -6,9 +6,9 @@ import { HeroStack, TemplateGallery } from "@/components/site/TemplateGallery";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
 
 const FEATURES = [
-  { icon: MousePointerClick, title: "Live preview as you type", text: "Every change shows on the page at once, laid out on real A4 or Letter sheets, so what you see is what you send." },
-  { icon: LayoutTemplate, title: "Ten professional templates", text: "From quiet one column layouts that pass applicant tracking systems to bold two column designs. Switch any time without retyping." },
-  { icon: Palette, title: "Make it yours", text: "Pick any colour, pair heading and body fonts, set text size, spacing, margins, photo shape and how skill levels look." },
+  { icon: MousePointerClick, title: "Edit right on the page", text: "Click any line of your CV and type. Add, move and hide sections with toolbars that appear where you work, laid out on real A4 or Letter sheets." },
+  { icon: LayoutTemplate, title: "Premium templates, free", text: "Twenty designs, from quiet one column layouts that pass applicant tracking systems to bold, icon rich two column CVs. Switch any time without retyping." },
+  { icon: Palette, title: "Make it yours", text: "Colour themes, eighteen fonts, backgrounds, one or two columns, sidebar width, heading icons, photo shape and six ways to show skill levels." },
   { icon: Sparkles, title: "Ready made phrases", text: "Stuck on what to write? Drop in strong, specific bullet points for your kind of work and fill in your own numbers." },
   { icon: ListChecks, title: "A score with reasons", text: "Checks for the things recruiters look for: contact details, a focused profile, detail in every job, and a sensible length." },
   { icon: FileDown, title: "Clean PDF, no watermark", text: "Download a crisp, selectable text PDF that keeps every colour. No paywall on your own CV." },
@@ -40,7 +40,7 @@ export default function Home() {
                 A professional CV,<br />ready in minutes.
               </h1>
               <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-600">
-                Fill in your details, watch your CV take shape on the page, and download a polished PDF. Ten templates designed for real recruiters, with a score that tells you what to fix.
+                Fill in your details, watch your CV take shape on the page, and download a polished PDF. Twenty templates designed for real recruiters, including premium designs other builders charge for, with a score that tells you what to fix.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/dashboard?new=1" className="inline-flex h-12 items-center gap-2 rounded-lg bg-brand-600 px-6 text-[15px] font-medium text-white shadow-sm hover:bg-brand-700" data-testid="hero-cta">
@@ -53,7 +53,7 @@ export default function Home() {
               <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500">
                 <li className="flex items-center gap-1.5"><Gauge className="h-4 w-4 text-brand-600" /> Live preview</li>
                 <li className="flex items-center gap-1.5"><FileDown className="h-4 w-4 text-brand-600" /> PDF without watermark</li>
-                <li className="flex items-center gap-1.5"><LayoutTemplate className="h-4 w-4 text-brand-600" /> 10 templates</li>
+                <li className="flex items-center gap-1.5"><LayoutTemplate className="h-4 w-4 text-brand-600" /> 20 templates</li>
               </ul>
             </div>
             <HeroStack />
@@ -84,7 +84,7 @@ export default function Home() {
           <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-3xl font-semibold tracking-tight">Templates that look the part</h2>
-              <p className="mt-2 max-w-2xl text-slate-600">Each one is built to print beautifully and read clearly, in any colour you choose.</p>
+              <p className="mt-2 max-w-2xl text-slate-600">Premium quality designs that other builders put behind a paywall. Here they are free, in any colour you choose.</p>
             </div>
             <Link href="/templates" className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:underline">
               See all templates <ArrowRight className="h-4 w-4" />

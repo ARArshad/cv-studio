@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { normaliseCv } from "./io";
 import { makeCv, uid } from "./sample";
 import type { Cv, CvData, Design, TemplateId } from "./types";
 
@@ -135,7 +136,17 @@ export const useLibrary = create<LibraryState>()(
     }),
     {
       name: "cv-studio:library",
-      version: 1,
+      version: 2,
+      /* version 1 kept bullets as "- " lines with **bold**; bring those across */
+      migrate: (persisted, from) => {
+        const st = persisted as { cvs?: Record<string, unknown> };
+        if (from < 2 && st?.cvs) {
+          const next: Record<string, Cv> = {};
+          for (const [k, v] of Object.entries(st.cvs)) { const cv = normaliseCv(v); if (cv) next[k] = { ...cv, id: k }; }
+          return { cvs: next } as never;
+        }
+        return persisted as never;
+      },
       /* window.localStorage, so the server (where Node may have its own) never touches it */
       storage: createJSONStorage(() => window.localStorage),
       partialize: (s) => ({ cvs: s.cvs }),

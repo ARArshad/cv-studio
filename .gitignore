@@ -49,3 +49,4 @@ standalone/node_modules/
 standalone/package-lock.json
 test-results/
 playwright-report/
+.claude/

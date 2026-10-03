@@ -26,7 +26,7 @@ export function NewCvDialog({ open, onClose, initialTemplate }: { open: boolean;
   const samples = useTemplateSamples();
   const [title, setTitle] = useState("");
   const [start, setStart] = useState<"example" | "blank">("example");
-  const [template, setTemplate] = useState<TemplateId>(initialTemplate ?? "aurora");
+  const [template, setTemplate] = useState<TemplateId>(initialTemplate ?? "pulse");
 
   const create = () => {
     const id = createCv({ title, template, start });

@@ -1,4 +1,4 @@
-import { parseLines } from "@/components/cv/blocks";
+import { toText } from "./rich";
 import type { Cv } from "./types";
 
 export interface Check {
@@ -7,7 +7,7 @@ export interface Check {
   tip: string;
 }
 
-const words = (s: string) => s.replace(/\*\*/g, "").split(/\s+/).filter(Boolean).length;
+const words = (s: string) => toText(s).split(/\s+/).filter(Boolean).length;
 
 /** quick, explainable checks; the score is simply the share that pass */
 export function checkCv(cv: Cv, pages: number): { score: number; checks: Check[] } {
@@ -18,7 +18,7 @@ export function checkCv(cv: Cv, pages: number): { score: number; checks: Check[]
   const jobs = visible.filter((s) => s.type === "experience").flatMap((s) => s.entries).filter((e) => e.title.trim());
   const skills = visible.filter((s) => s.type === "skills").flatMap((s) => s.items).filter((i) => i.name.trim());
   const education = visible.filter((s) => s.type === "education").flatMap((s) => s.entries).filter((e) => e.title.trim());
-  const thinJobs = jobs.filter((e) => parseLines(e.description).filter((l) => l.kind === "li").length < 2);
+  const thinJobs = jobs.filter((e) => e.bullets.filter((b) => toText(b).trim()).length < 2 && toText(e.description).split(/\s+/).filter(Boolean).length < 25);
   const placeholders = JSON.stringify(cv.data).match(/\[[a-z£$€ ]{1,12}\]/gi) ?? [];
   const sw = summary ? words(summary.text) : 0;
 
@@ -30,7 +30,7 @@ export function checkCv(cv: Cv, pages: number): { score: number; checks: Check[]
     { ok: has("location"), title: "Location", tip: "Add your town or city. Recruiters often filter by location." },
     { ok: sw >= 30 && sw <= 120, title: "Profile length", tip: sw < 30 ? "Write a profile of 30 to 120 words: who you are, what you bring, what you want." : "Trim your profile to under 120 words. Keep the strongest points." },
     { ok: jobs.length > 0, title: "Work experience", tip: "Add at least one job, placement or volunteer role." },
-    { ok: jobs.length > 0 && thinJobs.length === 0, title: "Detail in each job", tip: `Give every job at least two bullet points.${thinJobs.length ? " Check: " + thinJobs.map((e) => e.title).join(", ") + "." : ""}` },
+    { ok: jobs.length > 0 && thinJobs.length === 0, title: "Detail in each job", tip: `Give every job at least two bullet points about what you achieved.${thinJobs.length ? " Check: " + thinJobs.map((e) => e.title).join(", ") + "." : ""}` },
     { ok: education.length > 0, title: "Education", tip: "Add your highest qualification." },
     { ok: skills.length >= 5, title: "Skills", tip: "List at least five skills that match the jobs you want." },
     { ok: placeholders.length === 0, title: "No placeholders left", tip: `Replace text in square brackets such as ${placeholders.slice(0, 2).join(" and ")} with your own details.` },
