@@ -291,6 +291,78 @@ export const TEMPLATES: TemplateDef[] = [
     tags: ["Simple", "One column", "ATS friendly"],
     defaults: { accent: "#0369a1", fontBody: "openSans", fontHeading: "openSans" },
   }),
+  /* ---------------- the third premium set ---------------- */
+  T({
+    id: "aurum", name: "Aurum", premium: true, categories: ["executive", "professional"], persona: "executive",
+    blurb: "Black and gold: a dark left panel with a gold monogram ring, and a calm white page for the career story.",
+    layout: "left", sideWidth: 0.34, header: "side", darkSide: true, darkHeader: false, entryStyle: "standard",
+    tags: ["Executive", "Photo", "Two columns"],
+    defaults: { accent: "#c9a227", accent2: "#16161a", fontBody: "lato", fontHeading: "playfair", skillStyle: "bars", photoShape: "circle" },
+  }),
+  T({
+    id: "ember", name: "Ember", premium: true, categories: ["creative", "modern"], persona: "designer",
+    blurb: "A warm gradient header with a bold oversized name and chunky section tabs. Energetic without being messy.",
+    layout: "right", sideWidth: 0.32, header: "banner", darkSide: false, darkHeader: true, entryStyle: "standard",
+    tags: ["Creative", "Photo", "Two columns"],
+    defaults: { accent: "#f97316", accent2: "#be123c", fontBody: "poppins", fontHeading: "poppins", skillStyle: "blocks", photoShape: "rounded" },
+  }),
+  T({
+    id: "glacier", name: "Glacier", premium: true, categories: ["minimalist", "modern"],
+    blurb: "Pale ice blue, thin type and generous space. A quiet, confident one column layout with a slim sidebar of facts.",
+    layout: "left", sideWidth: 0.28, header: "top", darkSide: false, darkHeader: false, entryStyle: "standard",
+    tags: ["Minimal", "Two columns", "ATS friendly"],
+    defaults: { accent: "#0e7490", accent2: "#ecf6f9", fontBody: "dmSans", fontHeading: "dmSans", skillStyle: "text", margin: 42 },
+  }),
+  T({
+    id: "halo", name: "Halo", premium: true, categories: ["creative", "student"], persona: "graduate",
+    blurb: "A big round photo halo, soft pastel panel and friendly rounded tags. Made to be remembered at a careers fair.",
+    layout: "left", sideWidth: 0.35, header: "side", darkSide: false, darkHeader: false, entryStyle: "standard",
+    tags: ["Student", "Photo", "Creative"],
+    defaults: { accent: "#8b5cf6", accent2: "#f3efff", fontBody: "nunito", fontHeading: "nunito", skillStyle: "tags", photoShape: "circle" },
+  }),
+  T({
+    id: "ivory", name: "Ivory", premium: true, categories: ["traditional", "executive"], persona: "executive",
+    blurb: "Warm cream tones with classic serif type and small caps headings. Timeless for law, finance and academia.",
+    layout: "single", sideWidth: 0.34, header: "top", darkSide: false, darkHeader: false, entryStyle: "gutter",
+    tags: ["Traditional", "One column", "ATS friendly"],
+    defaults: { accent: "#7c5a2b", accent2: "#faf6ee", fontBody: "crimson", fontHeading: "libreBaskerville", skillStyle: "text", margin: 50 },
+  }),
+  T({
+    id: "meadow", name: "Meadow", premium: true, categories: ["creative", "simple"], persona: "nurse",
+    blurb: "Fresh green with leaf shaped accents and soft cards. Friendly and trustworthy for care, education and wellbeing.",
+    layout: "right", sideWidth: 0.33, header: "top", darkSide: false, darkHeader: false, entryStyle: "standard",
+    tags: ["Photo", "Two columns", "Icons"],
+    defaults: { accent: "#15803d", accent2: "#f0faf3", fontBody: "nunito", fontHeading: "poppins", headingIcons: true, skillStyle: "dots", photoShape: "rounded", backdrop: "wave" },
+  }),
+  T({
+    id: "onyx", name: "Onyx", premium: true, categories: ["modern", "tech"], persona: "engineer",
+    blurb: "A confident black page header, neon accent line and tight monospaced details. Sharp for product and engineering.",
+    layout: "single", sideWidth: 0.34, header: "banner", darkSide: false, darkHeader: true, entryStyle: "standard", summaryInHeader: true,
+    tags: ["Tech", "One column", "Modern"],
+    defaults: { accent: "#22c55e", accent2: "#0a0a0a", fontBody: "inter", fontHeading: "jetbrainsMono", skillStyle: "tags" },
+  }),
+  T({
+    id: "quartz", name: "Quartz", premium: true, categories: ["professional", "hybrid"],
+    blurb: "A faceted corner, balanced two columns and tidy cards for skills. Polished and organised for any industry.",
+    layout: "left", sideWidth: 0.38, header: "top", darkSide: false, darkHeader: false, entryStyle: "standard",
+    tags: ["Hybrid", "Two columns", "Photo"],
+    defaults: { accent: "#475569", accent2: "#eef2f6", fontBody: "workSans", fontHeading: "workSans", skillStyle: "bars", backdrop: "lines", photoShape: "rounded" },
+  }),
+  T({
+    id: "ribbon", name: "Ribbon", premium: true, categories: ["skills", "modern"],
+    blurb: "A ribbon bookmark behind your section titles with skills and highlights first. Clear and confident for career changers.",
+    layout: "single", sideWidth: 0.34, header: "top", darkSide: false, darkHeader: false, entryStyle: "timeline",
+    tags: ["Skill-based", "One column", "Timeline"],
+    order: ["summary", "skills", "strengths", "experience", "projects", "education", "certificates", "languages"],
+    defaults: { accent: "#be185d", accent2: "#fdf2f8", fontBody: "manrope", fontHeading: "manrope", skillStyle: "blocks", headingIcons: false },
+  }),
+  T({
+    id: "solstice", name: "Solstice", premium: true, categories: ["creative", "hybrid"], persona: "designer",
+    blurb: "A sunrise arc over your name, sand coloured sidebar and soft timeline. Calm, characterful and easy to read.",
+    layout: "left", sideWidth: 0.33, header: "banner", darkSide: false, darkHeader: true, entryStyle: "timeline",
+    tags: ["Creative", "Photo", "Timeline"],
+    defaults: { accent: "#d97706", accent2: "#b45309", fontBody: "lato", fontHeading: "raleway", skillStyle: "dots", photoShape: "circle" },
+  }),
 ];
 
 export const TEMPLATE_MAP = Object.fromEntries(TEMPLATES.map((t) => [t.id, t])) as Record<TemplateId, TemplateDef>;

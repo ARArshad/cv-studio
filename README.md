@@ -1,6 +1,6 @@
 # CV Studio
 
-Build a professional CV by typing straight onto the page, with thirty templates in eleven
+Build a professional CV by typing straight onto the page, with forty templates in eleven
 categories (premium designs included, all free) and a clean PDF download.
 Free, private (CVs stay in the browser) and no sign up.
 
@@ -33,7 +33,7 @@ Free, private (CVs stay in the browser) and no sign up.
     zoom, rotate.
   - **Tool card**: **ATS checker** (paste a job advert to see which of its key words your CV
     already uses), **Import content** (upload an old CV as a PDF or paste its text and it is
-    sorted into sections), **Templates** (all thirty drawn with your own CV, filtered by
+    sorted into sections), **Templates** (all forty drawn with your own CV, filtered by
     category), **Saved content** (keep your best bullets and entries and reuse them in any CV),
     **Optimizer** (a CV score plus line by line suggestions, also shown as markers in the margin
     of the page, with one click fixes for weak openings and personal details that do not belong),
@@ -47,8 +47,8 @@ Free, private (CVs stay in the browser) and no sign up.
 
 ## Templates
 
-Thirty templates, every one free, in eleven categories: Simple, Modern, Professional, Executive,
-Creative, Minimalist, Traditional, Skill-based, Hybrid, Student, and IT and tech. The fifteen
+Forty templates, every one free, in eleven categories: Simple, Modern, Professional, Executive,
+Creative, Minimalist, Traditional, Skill-based, Hybrid, Student, and IT and tech. The twenty-five
 marked premium are the kind of design other builders charge for. All of them are original
 designs; none copies another builder's templates.
 
@@ -59,7 +59,10 @@ designs; none copies another builder's templates.
 | **Apex** black header, accent stripe | **Bloom** soft circles, tinted sidebar | **Sterling** navy executive, icons, timeline |
 | **Orbit** dark tech sidebar, skill rings | **Zenith** summary in the header, pill headings | **Fusion** hybrid, skills band first |
 | **Catalyst** skill based, strengths first | **Terminal** monospace, code style header | **Elegance** split header, gold accent |
-| **Canvas** colour stripe, gradient header | | |
+| **Canvas** colour stripe, gradient header | **Aurum** black and gold executive panel | **Ember** warm gradient header, chunky tabs |
+| **Glacier** pale ice, thin type | **Halo** big photo halo, pastel panel | **Ivory** warm cream, classic serif |
+| **Meadow** fresh green cards | **Onyx** black header, neon line | **Quartz** faceted corner, balanced columns |
+| **Ribbon** bookmark titles, skills first | **Solstice** sunrise arc, sand sidebar | |
 
 | Free | | |
 |---|---|---|

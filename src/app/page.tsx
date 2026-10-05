@@ -7,7 +7,7 @@ import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
 
 const FEATURES = [
   { icon: MousePointerClick, title: "Edit right on the page", text: "Click any line of your CV and type. Add, move and hide sections with toolbars that appear where you work, laid out on real A4 or Letter sheets." },
-  { icon: LayoutTemplate, title: "Premium templates, free", text: "Thirty designs, from quiet one column layouts that pass applicant tracking systems to bold, icon rich two column CVs. Switch any time without retyping." },
+  { icon: LayoutTemplate, title: "Premium templates, free", text: "Forty designs, from quiet one column layouts that pass applicant tracking systems to bold, icon rich two column CVs. Switch any time without retyping." },
   { icon: Palette, title: "Make it yours", text: "Colour themes, eighteen fonts, backgrounds, one or two columns, sidebar width, heading icons, photo shape and six ways to show skill levels." },
   { icon: Sparkles, title: "Ready made phrases", text: "Stuck on what to write? Drop in strong, specific bullet points for your kind of work and fill in your own numbers." },
   { icon: ListChecks, title: "A score with reasons", text: "Checks for the things recruiters look for: contact details, a focused profile, detail in every job, and a sensible length." },
@@ -31,16 +31,17 @@ export default function Home() {
         {/* hero */}
         <section className="relative overflow-hidden">
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_right,#dce7ff_0%,transparent_55%),radial-gradient(ellipse_at_bottom_left,#eef4ff_0%,transparent_50%)]" />
+          <div className="absolute inset-0 -z-10 opacity-[0.45] [background-image:linear-gradient(#c7d4f0_1px,transparent_1px),linear-gradient(90deg,#c7d4f0_1px,transparent_1px)] [background-size:44px_44px] [mask-image:linear-gradient(180deg,#000,transparent_80%)]" />
           <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:py-24">
             <div>
               <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 ring-1 ring-brand-100">
                 <Lock className="h-3.5 w-3.5" /> Free, private, no sign up
               </span>
               <h1 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl lg:text-[56px]">
-                A professional CV,<br />ready in minutes.
+                A professional CV,<br /><span className="bg-gradient-to-r from-brand-600 to-violet-500 bg-clip-text text-transparent">ready in minutes.</span>
               </h1>
               <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-600">
-                Fill in your details, watch your CV take shape on the page, and download a polished PDF. Thirty templates designed for real recruiters, including premium designs other builders charge for, with a score that tells you what to fix.
+                Type straight onto your CV, watch it take shape on the page, and download a polished PDF. Forty templates designed for real recruiters, including premium designs other builders charge for, with a score that tells you what to fix.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/dashboard?new=1" className="inline-flex h-12 items-center gap-2 rounded-lg bg-brand-600 px-6 text-[15px] font-medium text-white shadow-sm hover:bg-brand-700" data-testid="hero-cta">
@@ -53,11 +54,20 @@ export default function Home() {
               <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-500">
                 <li className="flex items-center gap-1.5"><Gauge className="h-4 w-4 text-brand-600" /> Live preview</li>
                 <li className="flex items-center gap-1.5"><FileDown className="h-4 w-4 text-brand-600" /> PDF without watermark</li>
-                <li className="flex items-center gap-1.5"><LayoutTemplate className="h-4 w-4 text-brand-600" /> 30 templates</li>
+                <li className="flex items-center gap-1.5"><LayoutTemplate className="h-4 w-4 text-brand-600" /> 40 templates</li>
               </ul>
             </div>
             <HeroStack />
           </div>
+        </section>
+
+        {/* numbers */}
+        <section className="border-y border-slate-100 bg-white">
+          <dl className="mx-auto grid max-w-7xl grid-cols-2 gap-y-6 px-4 py-8 text-center sm:px-6 md:grid-cols-4">
+            {[["40", "templates, all free"], ["11", "template categories"], ["22", "section types"], ["0", "watermarks or sign ups"]].map(([n, l]) => (
+              <div key={l}><dt className="text-3xl font-semibold tracking-tight text-brand-700">{n}</dt><dd className="mt-1 text-sm text-slate-500">{l}</dd></div>
+            ))}
+          </dl>
         </section>
 
         {/* how it works */}
@@ -65,7 +75,7 @@ export default function Home() {
           <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 md:grid-cols-3">
             {[
               ["1", "Choose a template", "Start from a worked example or a blank page. You can change template whenever you like."],
-              ["2", "Fill in your details", "Short guided forms for each section, with ready made phrases when you need a start."],
+              ["2", "Write on the page", "Click any line and type. Toolbars appear where you work, with ready made phrases and an optimizer to help."],
               ["3", "Download and apply", "Check your score, adjust the design, and download a print ready PDF."],
             ].map(([n, t, d]) => (
               <div key={n} className="flex gap-4">
@@ -90,7 +100,7 @@ export default function Home() {
               See all templates <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-          <TemplateGallery limit={5} />
+          <TemplateGallery limit={10} />
         </section>
 
         {/* features */}
