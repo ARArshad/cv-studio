@@ -35,3 +35,12 @@ body { background: #f5f7fb; color: var(--color-ink); }
   .print-reset { height: auto !important; min-height: 0 !important; overflow: visible !important; display: block !important; }
   .print-flat { display: block !important; padding: 0 !important; margin: 0 !important; }
 }
+
+/* ---------------- polish ---------------- */
+:focus-visible { outline: 2px solid var(--color-brand-500); outline-offset: 2px; border-radius: 6px; }
+.cv-page :focus-visible { outline: none; }
+::selection { background: color-mix(in srgb, var(--color-brand-500) 28%, transparent); }
+button:not(:disabled):active { transform: translateY(0.5px); }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
+* { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
