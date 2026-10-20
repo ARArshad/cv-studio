@@ -92,7 +92,9 @@ export type TemplateId =
   | "cascade" | "monarch" | "horizon" | "pulse" | "mosaic"
   | "nordic" | "apex" | "bloom" | "sterling" | "orbit"
   | "beacon" | "keystone" | "catalyst" | "fusion" | "campus"
-  | "terminal" | "silicon" | "elegance" | "canvas" | "zenith";
+  | "terminal" | "silicon" | "elegance" | "canvas" | "zenith"
+  | "aurum" | "ember" | "glacier" | "halo" | "ivory"
+  | "meadow" | "onyx" | "quartz" | "ribbon" | "solstice";
 
 export type FontKey =
   | "inter" | "lato" | "roboto" | "openSans" | "sourceSans" | "montserrat"
