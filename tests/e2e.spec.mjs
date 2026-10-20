@@ -38,7 +38,8 @@ if (!BASE) {
 
 const TEMPLATES = ["pulse", "cascade", "monarch", "horizon", "mosaic", "nordic", "apex", "bloom", "sterling", "orbit",
   "aurora", "meridian", "summit", "atlas", "harbor", "vertex", "chronicle", "ledger", "linen", "prism",
-  "zenith", "fusion", "catalyst", "campus", "terminal", "silicon", "elegance", "canvas", "keystone", "beacon"];
+  "zenith", "fusion", "catalyst", "campus", "terminal", "silicon", "elegance", "canvas", "keystone", "beacon",
+  "aurum", "ember", "glacier", "halo", "ivory", "meadow", "onyx", "quartz", "ribbon", "solstice"];
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "cv-e2e-"));
 const browser = await chromium.launch();
@@ -221,16 +222,17 @@ try {
   check("a cropped photo is saved", (await page.locator(`${P} .photo img`).first().getAttribute("src")).startsWith("data:image/jpeg"), true);
 
   /* dates come from a picker and follow the chosen format */
-  await page.locator(`${P} [data-date$=":start"]`).first().click();
+  const jobEntry = page.locator(`${P} .entry`, { hasText: "Senior Product Marketing Manager" }).first();
+  await jobEntry.locator('[data-date$=":start"]').click();
   await page.getByTestId("date-year").fill("2019");
   await page.locator('[data-month="7"]').click();
   await page.waitForTimeout(250);
-  check("a picked date shows on the page", await page.locator(`${P} .e-date`).first().innerText(), (t) => t.startsWith("Jul 2019"));
+  check("a picked date shows on the page", await jobEntry.locator(".e-date").first().innerText(), (t) => t.startsWith("Jul 2019"));
   await page.getByTestId("tb-page").click();
   await page.locator('[data-testid=date-format] [data-value="mm/yyyy"]').click();
   await page.keyboard.press("Escape");
   await page.waitForTimeout(250);
-  check("the date format applies everywhere", await page.locator(`${P} .e-date`).first().innerText(), (t) => t.startsWith("07/2019"));
+  check("the date format applies everywhere", await jobEntry.locator(".e-date").first().innerText(), (t) => t.startsWith("07/2019"));
 
   /* ATS checker */
   await tool("ats");
@@ -435,6 +437,13 @@ try {
   await page.waitForURL(/\/editor\//);
   await page.locator(`${P} > .cv-page`).first().waitFor();
   check("a tech template starts with a tech example", (await text()).includes("Software Engineer"), true);
+
+  /* dashboard search */
+  await page.goto(BASE + "/dashboard");
+  await page.getByTestId("cv-card").first().waitFor();
+  await page.getByTestId("dash-search").fill("zzz-nothing");
+  check("dashboard search filters the list", await page.getByTestId("cv-card").count(), 0);
+  await page.getByTestId("dash-search").fill("");
 
   /* blank CV */
   await page.goto(BASE + "/dashboard");
