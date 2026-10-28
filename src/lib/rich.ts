@@ -12,12 +12,13 @@ export function escapeHtml(s: string): string {
 /** clean HTML from a contenteditable down to b, i, u and br */
 export function sanitize(html: string): string {
   if (typeof document === "undefined") return html;
-  const box = document.createElement("div");
+  const box = document.createElement("template");
   box.innerHTML = html;
   const walk = (n: Node): string => {
     if (n.nodeType === Node.TEXT_NODE) return escapeHtml(n.textContent ?? "");
     if (n.nodeType !== Node.ELEMENT_NODE) return "";
     const el = n as HTMLElement;
+    if (["SCRIPT", "STYLE", "IFRAME", "OBJECT", "TEMPLATE", "NOSCRIPT"].includes(el.tagName)) return "";
     const inner = Array.from(el.childNodes).map(walk).join("");
     const tag = ALLOWED[el.tagName];
     if (tag === "br") return "<br>";
@@ -29,7 +30,7 @@ export function sanitize(html: string): string {
     if (el.tagName === "DIV" || el.tagName === "P") return (inner ? "<br>" + inner : "");
     return inner;
   };
-  return Array.from(box.childNodes).map(walk).join("")
+  return Array.from(box.content.childNodes).map(walk).join("")
     .replace(/^(<br>)+/, "")
     .replace(/(<br>)+$/, "")
     .replace(/&nbsp;| /g, " ");

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useLayoutEffect, useRef, type ElementType } from "react";
+import { createContext, useContext, useLayoutEffect, useMemo, useRef, type ElementType } from "react";
 import { escapeHtml, sanitize } from "@/lib/rich";
 
 /**
@@ -31,6 +31,8 @@ export type Action =
   | { t: "colSection"; sid: string }
   | { t: "entryMenu"; sid: string; eid: string; anchor: DOMRect }
   | { t: "datePicker"; sid: string; eid: string; which: "start" | "end"; anchor: DOMRect }
+  | { t: "splitLetterParagraph"; id: string; before: string; after: string }
+  | { t: "delLetterParagraph"; id: string }
   | { t: "photo" }
   | { t: "optimizer"; path: string; anchor: DOMRect }
   | { t: "saveEntry"; sid: string; eid: string };
@@ -134,7 +136,7 @@ export function Ed({ path, value, rich, ph, className, as: Tag = "span", onEnter
   const ed = useEdit();
   const ref = useRef<HTMLElement>(null);
   const emitted = useRef<string | null>(null);
-  const html = rich ? value : escapeHtml(value);
+  const html = useMemo(() => rich ? sanitize(value) : escapeHtml(value), [rich, value]);
   const live = !!ed?.on && !ed.measure;
 
   /* write the DOM ourselves so typing never fights React */

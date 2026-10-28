@@ -20,7 +20,7 @@ export function pageVars(cv: Cv, tpl: TemplateDef): CSSProperties {
     "--accent2": d.accent2,
     "--font-body": fontCss(d.fontBody),
     "--font-head": fontCss(d.fontHeading),
-    "--fs": `${(tpl.id === "ledger" ? 11.4 : 12.2) * d.fontScale}px`,
+    "--fs": `${(cv.data.letter ? 14 : tpl.id === "ledger" ? 11.4 : 12.2) * d.fontScale}px`,
     "--lh": d.lineHeight,
     "--ls": `${d.letterSpacing}em`,
     "--ws": `${d.wordSpacing ?? 0}em`,
@@ -50,7 +50,7 @@ export function CvDocument({ cv, maxPages, onPageCount, className }: Props) {
   const ed = useEdit();
   const editing = !!ed?.on;
   const tpl = getTemplate(cv.design.template);
-  const layoutMode = cv.design.layout ?? tpl.layout;
+  const layoutMode = cv.data.letter ? "single" : cv.design.layout ?? tpl.layout;
   const blocks = useMemo(() => buildBlocks(cv, tpl, editing), [cv, tpl, editing]);
   const vars = useMemo(() => pageVars(cv, tpl), [cv, tpl]);
   const measureCtx = useMemo(() => (ed ? { ...ed, measure: true } : null), [ed]);
@@ -121,7 +121,7 @@ export function CvDocument({ cv, maxPages, onPageCount, className }: Props) {
     + ` entries-${tpl.entryStyle} bd-${cv.design.backdrop}`
     + (cv.design.showIcons ? "" : " no-icons")
     + (cv.design.headingIcons ? " h-icons" : "")
-    + (editing ? " editing" : "");
+    + (editing ? " editing" : "") + (cv.data.letter ? " letter-page" : "");
 
   const renderBlock = (b: Block) => (
     <div

@@ -153,7 +153,7 @@ export function PersonalDrawer({ onPhoto }: { onPhoto: () => void }) {
         </button>
         <div className="space-y-1 text-sm">
           <button type="button" onClick={onPhoto} className="font-medium text-brand-600 hover:underline cursor-pointer">{p.photo ? "Change photo" : "Upload a photo"}</button>
-          {p.photo && <button type="button" onClick={() => update((d) => { d.data.personal.photo = ""; })} className="block text-slate-500 hover:text-red-600 cursor-pointer">Remove photo</button>}
+          {p.photo && <button type="button" onClick={() => update((d) => { d.data.personal.photo = ""; d.data.personal.photoSource = ""; })} className="block text-slate-500 hover:text-red-600 cursor-pointer">Remove photo</button>}
           <p className="text-xs text-slate-500">Usual in much of Europe and Asia; usually left off in the UK, US and Canada.</p>
         </div>
       </div>
@@ -173,12 +173,12 @@ export function PersonalDrawer({ onPhoto }: { onPhoto: () => void }) {
           {p.details.map((det, i) => {
             const meta = DETAIL_KINDS.find((x) => x.icon === det.icon) ?? DETAIL_KINDS[11];
             return (
-              <div key={det.id} className="grid grid-cols-[8.5rem_minmax(0,1fr)_2rem] items-center gap-2">
+              <div key={det.id} className="grid grid-cols-[6rem_minmax(0,1fr)_2rem] items-center gap-2">
                 <select className={cx(inputCls, "px-2")} value={det.icon} aria-label="Kind of detail"
                   onChange={(e) => update((d) => { d.data.personal.details[i].icon = e.target.value as DetailIcon; })}>
                   {DETAIL_KINDS.map((x) => <option key={x.icon} value={x.icon}>{x.label}</option>)}
                 </select>
-                <input className={inputCls} value={det.value} placeholder={meta.placeholder} data-testid={`detail-${det.icon}`}
+                <input className={inputCls} value={det.value} placeholder={meta.placeholder} aria-label={`${meta.label} ${i+1}`} data-testid={`detail-${det.icon}`}
                   onChange={(e) => update((d) => { d.data.personal.details[i].value = e.target.value; }, "detail" + det.id)} />
                 <IconButton label="Remove detail" onClick={() => update((d) => { d.data.personal.details.splice(i, 1); })}><X className="h-4 w-4" /></IconButton>
               </div>
@@ -368,8 +368,9 @@ function keywords(text: string): string[] {
 }
 
 export function AtsDrawer() {
-  const { cv } = useEditor();
-  const [ad, setAd] = useState("");
+  const { cv, update } = useEditor();
+  const ad = cv.data.jobDescription ?? "";
+  const setAd = (text: string) => update(d => { d.data.jobDescription = text; }, "job-description");
   const tpl = getTemplate(cv.design.template);
   const cvText = useMemo(() => {
     const p = cv.data.personal;
@@ -385,17 +386,17 @@ export function AtsDrawer() {
     { ok: layout === "single", text: layout === "single" ? "One column layout: the safest choice for older tracking systems." : "Two column layout: modern systems read it fine; for strict ones, try a one column template." },
     { ok: cv.data.personal.details.some((d) => d.icon === "email" && d.value) && cv.data.personal.details.some((d) => d.icon === "phone" && d.value), text: "Email and phone are in the header as text." },
     { ok: cv.data.sections.some((s) => s.type === "experience" && !s.hidden) && cv.data.sections.some((s) => s.type === "education" && !s.hidden), text: "Standard Experience and Education sections are present." },
-    { ok: true, text: "Your PDF is real, selectable text, so systems can read every word." },
+    { ok: true, text: "Your PDF contains selectable text. Check the exported reading order and use Plain text if an application requests it." },
   ];
   return (
     <div data-testid="ats-drawer">
       <p className="mb-2 text-[13px] text-slate-500">Paste the job advert. We will pick out its key words and show which ones your CV already uses.</p>
-      <textarea className={cx(inputCls, "h-36 resize-y")} value={ad} onChange={(e) => setAd(e.target.value)} placeholder="Paste the job description here" data-testid="ats-input" />
+      <textarea className={cx(inputCls, "h-36 resize-y")} value={ad} onChange={(e) => setAd(e.target.value)} placeholder="Paste the job description here" aria-label="Job description" data-testid="ats-input" />
       {words.length > 0 && (
         <div className="mt-4">
           <div className="mb-3 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
             <span className={cx("text-2xl font-bold", pct >= 70 ? "text-emerald-600" : pct >= 45 ? "text-amber-600" : "text-red-600")} data-testid="ats-score">{pct}%</span>
-            <span className="text-[13px] text-slate-600">of the advert&apos;s key words appear in your CV. Aim for 70% or more, using the words honestly where they fit.</span>
+            <span className="text-[13px] text-slate-600">keyword overlap with the job description. This is a writing aid, not an employer’s ATS score. Use the terms only where they honestly describe your experience.</span>
           </div>
           {missing.length > 0 && <>
             <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Missing</h4>

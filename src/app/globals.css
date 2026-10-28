@@ -2,13 +2,13 @@
 @import "./cv.css";
 
 @theme {
-  --color-brand-50: #eef4ff;
-  --color-brand-100: #dce7ff;
-  --color-brand-200: #b9ceff;
-  --color-brand-500: #3d6ff5;
-  --color-brand-600: #2f5ae0;
-  --color-brand-700: #2547b6;
-  --color-ink: #141a26;
+  --color-brand-50: #edf5f1;
+  --color-brand-100: #d9ebe2;
+  --color-brand-200: #afd2c0;
+  --color-brand-500: #32856b;
+  --color-brand-600: #216b55;
+  --color-brand-700: #19523f;
+  --color-ink: #182b26;
   --font-sans: var(--f-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -18,7 +18,7 @@ body { background: #f5f7fb; color: var(--color-ink); }
 /* the editor preview and the dashboard thumbnails draw pages with a shadow */
 .paper-shadow .cv-page { box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 12px 32px rgba(16, 24, 40, 0.12); }
 .cv-clickable .blk[data-section] { cursor: pointer; }
-.cv-clickable .blk[data-section]:hover { outline: 2px dashed color-mix(in srgb, #3d6ff5 45%, transparent); outline-offset: 2px; border-radius: 2px; }
+.cv-clickable .blk[data-section]:hover { outline: 2px dashed color-mix(in srgb, #32856b 45%, transparent); outline-offset: 2px; border-radius: 2px; }
 
 @media print {
   html, body { background: #fff !important; }
@@ -44,3 +44,35 @@ button:not(:disabled):active { transform: translateY(0.5px); }
 html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
 * { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+
+.site-container { width: min(1440px, 100%); margin-inline: auto; padding-inline: clamp(20px, 4vw, 72px); }
+.editorial-title { font-family: var(--f-dm-sans), sans-serif; letter-spacing: -.055em; line-height: 1.04; }
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--color-brand-700); }
+.template-stage { background: #eef0ed; background-image: radial-gradient(#d5dcd5 .8px, transparent .8px); background-size: 12px 12px; }
+.site-header a, footer a { transition: color .2s; }
+button, a, input, select { -webkit-tap-highlight-color: transparent; }
+summary::-webkit-details-marker { display: none; }
+@media (min-width: 1024px) { .workspace-main { margin-left: 248px; } }
+
+@media (max-width: 767px) {
+  .editor-toolbar-popover {
+    position: fixed;
+    inset: var(--editor-panel-top, 116px) 12px auto;
+    width: auto !important;
+    max-height: calc(100dvh - var(--editor-panel-top, 116px) - 12px);
+    margin-top: 0;
+  }
+}
+
+/* Marketing: a product-led editorial system with warm colour and real documents. */
+.marketing-title { font-family: var(--f-dm-sans), sans-serif; font-weight: 500; letter-spacing: -.055em; line-height: 1.08; }
+.marketing-hero { background: radial-gradient(ellipse at 9% 45%,#e8eee0 0,transparent 42%),radial-gradient(ellipse at 92% 40%,#f5e7da 0,transparent 35%),linear-gradient(#fbfcf8,#f4f7ef); }
+.marketing-button { display: inline-flex; min-height: 50px; align-items: center; justify-content: center; gap: 25px; padding: 0 23px; border-radius: 9px; background: #1c5745; color: white; font-size: 13px; font-weight: 600; transition: background .2s,box-shadow .2s; }
+.marketing-button:hover { background: #173e35; box-shadow: 0 5px 15px #173e351a; }
+.marketing-button-light { background: #ffffffb3; border: 1px solid #d6dfd5; color: #315547; }
+.marketing-button-light:hover { background: white; }
+.showcase-shell { overflow: hidden; border: 1px solid #d8e1db; border-radius: 18px; background: #fff; box-shadow: 0 18px 65px #254c3b17,0 3px 6px #254c3b08; }
+.marketing-home .template-stage { background-color: #edf1ec; background-image: radial-gradient(ellipse at 50% 20%,#ffffff 0,transparent 75%); border-color: #e0e7dd; border-radius: 16px; }
+.marketing-home .template-stage:hover { box-shadow: 0 12px 35px #294a3910; }
+.marketing-home .site-header { background: #ffffffed; }
+@media (max-width: 767px) { .showcase-shell [role=tabpanel] { min-height: 230px; } }

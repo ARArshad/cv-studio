@@ -131,7 +131,7 @@ export function sampleData(persona: Persona = "marketing"): CvData {
     personal: {
       fullName: p.name,
       jobTitle: p.title,
-      photo: "/sample-photo.jpg",
+      photo: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/sample-photo.jpg`,
       details: p.details.map(([icon, value]) => ({ id: uid("d_"), icon, value })),
     },
     sections: p.sections.map((x) => newSection(x.type, {
@@ -182,17 +182,21 @@ function ordered(data: CvData, order?: SectionType[]): CvData {
   return { ...data, sections: [...data.sections].sort((a, b) => rank(a.type) - rank(b.type)) };
 }
 
-export function makeCv(opts: { title?: string; template?: TemplateId; start?: "example" | "blank"; persona?: Persona } = {}): Cv {
+export function makeCv(opts: { title?: string; template?: TemplateId; start?: "example" | "blank"; persona?: Persona; fullName?: string; jobTitle?: string } = {}): Cv {
   const now = Date.now();
   const tpl = getTemplate(opts.template ?? "pulse");
   const data = opts.start === "blank" ? blankData() : sampleData(opts.persona ?? tpl.persona);
+  if (opts.fullName?.trim()) data.personal.fullName = opts.fullName.trim();
+  if (opts.jobTitle?.trim()) data.personal.jobTitle = opts.jobTitle.trim();
   return {
     id: uid("cv_"),
+    kind: "cv",
+    tags: [],
     title: opts.title?.trim() || (opts.start === "blank" ? "Untitled CV" : "My CV"),
     createdAt: now,
     updatedAt: now,
     schema: 2,
     data: ordered(data, tpl.order),
-    design: designFor(tpl.id),
+    design: { ...designFor(tpl.id), ...(opts.start === "blank" ? { showPhoto: false } : {}) },
   };
 }

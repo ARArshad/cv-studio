@@ -8,20 +8,44 @@ import type { Cv } from "@/lib/types";
 export function CvThumb({ cv, className }: { cv: Cv; className?: string }) {
   const page = PAGE_PX[cv.design.pageSize] ?? PAGE_PX.A4;
   const box = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
   const [w, setW] = useState(0);
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
     setW(el.clientWidth);
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisible(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "400px" },
+    );
+    io.observe(el);
     const ro = new ResizeObserver(() => setW(el.clientWidth));
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      io.disconnect();
+    };
   }, []);
   const scale = w / page.w;
   return (
-    <div ref={box} className={"relative w-full overflow-hidden bg-white " + (className ?? "")} style={{ aspectRatio: `${page.w} / ${page.h}` }}>
-      {w > 0 && (
-        <div className="pointer-events-none absolute left-0 top-0 origin-top-left" style={{ width: page.w, transform: `scale(${scale})` }} aria-hidden>
+    <div
+      ref={box}
+      className={
+        "relative w-full overflow-hidden bg-white " + (className ?? "")
+      }
+      style={{ aspectRatio: `${page.w} / ${page.h}` }}
+    >
+      {visible && w > 0 && (
+        <div
+          className="pointer-events-none absolute left-0 top-0 origin-top-left"
+          style={{ width: page.w, transform: `scale(${scale})` }}
+          aria-hidden
+        >
           <CvDocument cv={cv} maxPages={1} />
         </div>
       )}

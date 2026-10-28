@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { fontVariables } from "./fonts";
 import "./globals.css";
+import { StorageNotice } from "@/components/StorageNotice";
 
 export const metadata: Metadata = {
   title: { default: "CV Studio: build a professional CV in minutes", template: "%s · CV Studio" },
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${fontVariables} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">{children}<StorageNotice /></body>
     </html>
   );
 }

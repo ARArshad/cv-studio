@@ -39,7 +39,7 @@ if (!BASE) {
 const TEMPLATES = ["pulse", "cascade", "monarch", "horizon", "mosaic", "nordic", "apex", "bloom", "sterling", "orbit",
   "aurora", "meridian", "summit", "atlas", "harbor", "vertex", "chronicle", "ledger", "linen", "prism",
   "zenith", "fusion", "catalyst", "campus", "terminal", "silicon", "elegance", "canvas", "keystone", "beacon",
-  "aurum", "ember", "glacier", "halo", "ivory", "meadow", "onyx", "quartz", "ribbon", "solstice"];
+  "aurum", "ember", "glacier", "halo", "ivory", "meadow", "onyx", "quartz", "ribbon", "solstice", "atelier", "clarity", "metro", "boardroom", "plain", "focus", "signature", "scholar", "strength", "whitespace", "bridge", "heritage", "versatile", "developer", "matrix", "balance"];
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "cv-e2e-"));
 const browser = await chromium.launch();
@@ -66,19 +66,20 @@ const tool = async (id) => { await page.locator(`[data-tool="${id}"]`).click(); 
 try {
   /* landing */
   await page.goto(BASE + "/");
-  check("landing page has a headline", await page.locator("h1").innerText(), (t) => t.includes("professional CV"));
+  check("landing page has a headline", await page.locator("h1").innerText(), (t) => t.includes("exceptional CV"));
   await page.waitForTimeout(800);
-  check("landing page shows template previews with premium badges", await page.getByText("PREMIUM, FREE").count(), (n) => n >= 5);
+  check("landing page shows the new Studio template collection", await page.getByText("NEW · STUDIO COLLECTION", { exact: true }).count(), (n) => n >= 5);
 
   /* landing call to action opens the new CV dialog */
   await page.getByTestId("hero-cta").click();
   await page.waitForURL(/dashboard/);
   await page.getByTestId("new-title").waitFor();
   await page.getByTestId("new-title").fill("Marketing roles");
+  await page.locator('[data-start="example"]').click();
   await page.locator('[role=dialog] [data-template="sterling"]').click();
   await page.getByTestId("new-persona").selectOption("marketing");
   await page.getByTestId("new-create").click();
-  await page.waitForURL(/\/editor\//);
+  await page.waitForURL(/\/editor\?id=/);
   await page.locator(`${P} > .cv-page`).first().waitFor();
   check("editor opens with the chosen template", await page.locator(`${P} > .cv-page`).first().getAttribute("class"), (c) => c.includes("tpl-sterling"));
   check("example content is on the page", (await text()).includes("Brightline Software"), true);
@@ -348,20 +349,20 @@ try {
   await page.getByTestId("rename-input").press("Enter");
   check("rename from the card", await page.getByTestId("cv-title").first().innerText(), "Marketing, London");
   await page.getByTestId("card-menu").first().click();
-  await page.getByRole("button", { name: "Duplicate" }).click();
+  await page.getByRole("menuitem", { name: "Duplicate" }).click();
   await page.waitForTimeout(300);
   check("duplicate adds a card", await page.getByTestId("cv-card").count(), 2);
   await page.getByTestId("card-menu").first().click();
-  const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download a copy" }).click()]);
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "Download a copy" }).click()]);
   const saved = path.join(TMP, dl.suggestedFilename());
   await dl.saveAs(saved);
   check("a copy downloads as JSON", dl.suggestedFilename().endsWith(".json"), true);
   await page.getByTestId("card-menu").first().click();
-  await page.getByRole("button", { name: "Delete" }).click();
+  await page.getByRole("menuitem", { name: "Delete" }).click();
   await page.waitForTimeout(300);
   check("delete removes a card", await page.getByTestId("cv-card").count(), 1);
   await page.getByTestId("import-file").setInputFiles(saved);
-  await page.waitForURL(/\/editor\//);
+  await page.waitForURL(/\/editor\?id=/);
   await page.locator(`${P} > .cv-page`).first().waitFor();
   check("an imported copy opens in the editor", (await text()).includes("Extra job 4"), true);
 
@@ -381,7 +382,7 @@ try {
   await page.getByTestId("back").click();
   await page.waitForURL(/dashboard/);
   await page.getByTestId("import-file").setInputFiles(v1);
-  await page.waitForURL(/\/editor\//);
+  await page.waitForURL(/\/editor\?id=/);
   await page.locator(`${P} > .cv-page`).first().waitFor();
   check("first version bullets become bullets", await page.locator(`${P} li`, { hasText: "Cut waiting times." }).count(), 1);
   check("first version bold stays bold", await page.locator(`${P} .summary b`).innerText(), "ten years");
@@ -402,7 +403,7 @@ try {
   await page.getByTestId("import-preview").waitFor({ timeout: 15000 });
   check("a PDF is read and sorted into sections", await page.getByTestId("import-preview").innerText(), (t) => t.includes("Morgan Lee") && t.includes("Experience") && t.includes("Skills"));
   await page.getByTestId("import-new").click();
-  await page.waitForURL((u) => u.pathname.startsWith("/editor/"));
+  await page.waitForURL((u) => u.pathname === "/editor" && u.searchParams.has("id"));
   await page.waitForTimeout(800);
   const it = await text();
   check("the imported CV has the job and bullets", it.includes("Humber Logistics") && it.includes("Raised pick accuracy to 99.6%"), true);
@@ -422,7 +423,7 @@ try {
   await page.getByTestId("back").click();
   await page.waitForURL(/dashboard/);
   await page.getByTestId("import-file").setInputFiles(legacy);
-  await page.waitForURL(/\/editor\//);
+  await page.waitForURL(/\/editor\?id=/);
   await page.locator(`${P} > .cv-page`).first().waitFor();
   const lt = await text();
   check("an old .cvjson imports with its content", lt.includes("Jordan Blake") && lt.includes("Rowland Building") && lt.includes("Tested circuits."), true);
@@ -431,10 +432,11 @@ try {
   /* example content suits the role */
   await page.goto(BASE + "/dashboard");
   await page.getByTestId("new-cv").click();
+  await page.locator('[data-start="example"]').click();
   await page.locator('[data-cat="tech"]').click();
   await page.locator('[role=dialog] [data-template="silicon"]').click();
   await page.getByTestId("new-create").click();
-  await page.waitForURL(/\/editor\//);
+  await page.waitForURL(/\/editor\?id=/);
   await page.locator(`${P} > .cv-page`).first().waitFor();
   check("a tech template starts with a tech example", (await text()).includes("Software Engineer"), true);
 
@@ -450,14 +452,14 @@ try {
   await page.getByTestId("new-cv").click();
   await page.locator('[data-start="blank"]').click();
   await page.getByTestId("new-create").click();
-  await page.waitForURL(/\/editor\//);
+  await page.waitForURL(/\/editor\?id=/);
   await page.locator(`${P} > .cv-page`).first().waitFor();
   check("a blank CV has no example content", (await text()).includes("Brightline"), false);
   check("a blank CV shows placeholders to type into", await page.locator(`${P} [data-path=name]`).getAttribute("data-ph"), "Your Name");
   check("a blank CV has issues to fix", await page.getByTestId("issue-count").innerText(), (t) => Number(t) >= 6);
 
   /* an unknown CV id goes back to the dashboard */
-  await page.goto(BASE + "/editor/nope");
+  await page.goto(BASE + "/editor?id=nope");
   await page.waitForURL(/dashboard/);
   check("a missing CV goes back to the dashboard", page.url().endsWith("/dashboard"), true);
 

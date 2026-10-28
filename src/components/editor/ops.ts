@@ -1,6 +1,6 @@
 import { focusSoon, type Action } from "@/components/cv/edit";
 import { defaultColumn } from "@/lib/templates";
-import { newEntry, newItem } from "@/lib/sample";
+import { newEntry, newItem, uid } from "@/lib/sample";
 import type { CvData, Design, Entry } from "@/lib/types";
 
 export type Draft = { data: CvData; design: Design };
@@ -12,19 +12,74 @@ export type Draft = { data: CvData; design: Design };
 export function applyPath(d: Draft, path: string, value: string) {
   const [kind, a, b, c] = path.split(":");
   const sec = (id: string) => d.data.sections.find((s) => s.id === id);
-  const ent = (sid: string, eid: string) => sec(sid)?.entries.find((e) => e.id === eid);
+  const ent = (sid: string, eid: string) =>
+    sec(sid)?.entries.find((e) => e.id === eid);
   switch (kind) {
-    case "name": d.data.personal.fullName = value; break;
-    case "title": d.data.personal.jobTitle = value; break;
-    case "detail": { const x = d.data.personal.details.find((x) => x.id === a); if (x) x.value = value; break; }
-    case "sec": { const s = sec(a); if (s && (b === "title" || b === "text")) s[b] = value; break; }
-    case "ent": {
-      const e = ent(a, b);
-      if (e && ["title", "subtitle", "location", "startDate", "endDate", "description"].includes(c)) (e as unknown as Record<string, string>)[c] = value;
+    case "letter": {
+      const letter = d.data.letter;
+      if (
+        letter &&
+        [
+          "recipient",
+          "company",
+          "address",
+          "date",
+          "subject",
+          "salutation",
+          "closing",
+          "signature",
+        ].includes(a)
+      )
+        (letter as unknown as Record<string, string>)[a] = value;
       break;
     }
-    case "bul": { const e = ent(a, b); if (e) e.bullets[Number(c)] = value; break; }
-    case "item": { const it = sec(a)?.items.find((i) => i.id === b); if (it) it.name = value; break; }
+    case "letterp": {
+      const paragraph = d.data.letter?.paragraphs.find((p) => p.id === a);
+      if (paragraph) paragraph.text = value;
+      break;
+    }
+    case "name":
+      d.data.personal.fullName = value;
+      break;
+    case "title":
+      d.data.personal.jobTitle = value;
+      break;
+    case "detail": {
+      const x = d.data.personal.details.find((x) => x.id === a);
+      if (x) x.value = value;
+      break;
+    }
+    case "sec": {
+      const s = sec(a);
+      if (s && (b === "title" || b === "text")) s[b] = value;
+      break;
+    }
+    case "ent": {
+      const e = ent(a, b);
+      if (
+        e &&
+        [
+          "title",
+          "subtitle",
+          "location",
+          "startDate",
+          "endDate",
+          "description",
+        ].includes(c)
+      )
+        (e as unknown as Record<string, string>)[c] = value;
+      break;
+    }
+    case "bul": {
+      const e = ent(a, b);
+      if (e) e.bullets[Number(c)] = value;
+      break;
+    }
+    case "item": {
+      const it = sec(a)?.items.find((i) => i.id === b);
+      if (it) it.name = value;
+      break;
+    }
   }
 }
 
@@ -33,14 +88,35 @@ export function applyAction(d: Draft, act: Action): boolean {
   const sections = d.data.sections;
   const si = "sid" in act ? sections.findIndex((s) => s.id === act.sid) : -1;
   const s = si >= 0 ? sections[si] : undefined;
-  const ei = s && "eid" in act ? s.entries.findIndex((e) => e.id === act.eid) : -1;
+  const ei =
+    s && "eid" in act ? s.entries.findIndex((e) => e.id === act.eid) : -1;
   const e: Entry | undefined = s && ei >= 0 ? s.entries[ei] : undefined;
 
   switch (act.t) {
+    case "splitLetterParagraph": {
+      const letter = d.data.letter;
+      const index = letter?.paragraphs.findIndex((p) => p.id === act.id) ?? -1;
+      if (!letter || index < 0) return false;
+      letter.paragraphs[index].text = act.before;
+      const next = { id: uid("p_"), text: act.after };
+      letter.paragraphs.splice(index + 1, 0, next);
+      focusSoon(`letterp:${next.id}`, "start");
+      return true;
+    }
+    case "delLetterParagraph": {
+      const letter = d.data.letter;
+      const index = letter?.paragraphs.findIndex((p) => p.id === act.id) ?? -1;
+      if (!letter || index <= 0) return false;
+      letter.paragraphs.splice(index, 1);
+      focusSoon(`letterp:${letter.paragraphs[index - 1].id}`, "end");
+      return true;
+    }
     case "addEntry": {
       if (!s) return false;
       const n = newEntry({ bullets: s.fields.bullets ? [""] : [] });
-      const at = act.after ? s.entries.findIndex((x) => x.id === act.after) + 1 : s.entries.length;
+      const at = act.after
+        ? s.entries.findIndex((x) => x.id === act.after) + 1
+        : s.entries.length;
       s.entries.splice(at, 0, n);
       focusSoon(`ent:${s.id}:${n.id}:title`, "start");
       return true;
@@ -78,7 +154,9 @@ export function applyAction(d: Draft, act: Action): boolean {
     case "addItem": {
       if (!s) return false;
       const n = newItem("", s.type === "interests" ? 0 : 3);
-      const at = act.after ? s.items.findIndex((x) => x.id === act.after) + 1 : s.items.length;
+      const at = act.after
+        ? s.items.findIndex((x) => x.id === act.after) + 1
+        : s.items.length;
       s.items.splice(at, 0, n);
       focusSoon(`item:${s.id}:${n.id}`, "start");
       return true;
@@ -101,7 +179,12 @@ export function applyAction(d: Draft, act: Action): boolean {
       if (!s) return false;
       /* move past the next visible section in the same column */
       let to = si + act.dir;
-      while (to >= 0 && to < sections.length && (sections[to].hidden || sections[to].column !== s.column)) to += act.dir;
+      while (
+        to >= 0 &&
+        to < sections.length &&
+        (sections[to].hidden || sections[to].column !== s.column)
+      )
+        to += act.dir;
       if (to < 0 || to >= sections.length) return false;
       sections.splice(si, 1);
       sections.splice(to, 0, s);

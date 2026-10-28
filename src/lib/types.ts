@@ -7,8 +7,18 @@
  */
 
 export type DetailIcon =
-  | "email" | "phone" | "location" | "website" | "linkedin" | "github"
-  | "calendar" | "flag" | "car" | "user" | "briefcase" | "star";
+  | "email"
+  | "phone"
+  | "location"
+  | "website"
+  | "linkedin"
+  | "github"
+  | "calendar"
+  | "flag"
+  | "car"
+  | "user"
+  | "briefcase"
+  | "star";
 
 export interface Detail {
   id: string;
@@ -60,10 +70,28 @@ export interface Item {
 export type SectionKind = "text" | "entries" | "items";
 
 export type SectionType =
-  | "summary" | "experience" | "education" | "skills" | "languages"
-  | "projects" | "certificates" | "courses" | "awards" | "volunteering"
-  | "interests" | "references" | "strengths" | "publications" | "softSkills" | "organizations"
-  | "conferences" | "teaching" | "freelance" | "testimonials" | "honors" | "custom";
+  | "summary"
+  | "experience"
+  | "education"
+  | "skills"
+  | "languages"
+  | "projects"
+  | "certificates"
+  | "courses"
+  | "awards"
+  | "volunteering"
+  | "interests"
+  | "references"
+  | "strengths"
+  | "publications"
+  | "softSkills"
+  | "organizations"
+  | "conferences"
+  | "teaching"
+  | "freelance"
+  | "testimonials"
+  | "honors"
+  | "custom";
 
 export type Column = "main" | "side";
 
@@ -81,32 +109,123 @@ export interface Section {
   fields: EntryFields;
 }
 
+export interface CoverLetter {
+  sourceCvId?: string;
+  recipient: string;
+  company: string;
+  address: string;
+  date: string;
+  subject: string;
+  salutation: string;
+  paragraphs: { id: string; text: string }[];
+  closing: string;
+  signature: string;
+}
+
 export interface CvData {
+  letter?: CoverLetter;
+  jobDescription?: string;
   personal: Personal;
   sections: Section[];
 }
 
 export type TemplateId =
-  | "aurora" | "meridian" | "summit" | "atlas" | "harbor"
-  | "vertex" | "chronicle" | "ledger" | "linen" | "prism"
-  | "cascade" | "monarch" | "horizon" | "pulse" | "mosaic"
-  | "nordic" | "apex" | "bloom" | "sterling" | "orbit"
-  | "beacon" | "keystone" | "catalyst" | "fusion" | "campus"
-  | "terminal" | "silicon" | "elegance" | "canvas" | "zenith"
-  | "aurum" | "ember" | "glacier" | "halo" | "ivory"
-  | "meadow" | "onyx" | "quartz" | "ribbon" | "solstice";
+  | "aurora"
+  | "meridian"
+  | "summit"
+  | "atlas"
+  | "harbor"
+  | "vertex"
+  | "chronicle"
+  | "ledger"
+  | "linen"
+  | "prism"
+  | "cascade"
+  | "monarch"
+  | "horizon"
+  | "pulse"
+  | "mosaic"
+  | "nordic"
+  | "apex"
+  | "bloom"
+  | "sterling"
+  | "orbit"
+  | "beacon"
+  | "keystone"
+  | "catalyst"
+  | "fusion"
+  | "campus"
+  | "terminal"
+  | "silicon"
+  | "elegance"
+  | "canvas"
+  | "zenith"
+  | "aurum"
+  | "ember"
+  | "glacier"
+  | "halo"
+  | "ivory"
+  | "meadow"
+  | "onyx"
+  | "quartz"
+  | "ribbon"
+  | "solstice"
+  | "atelier"
+  | "clarity"
+  | "metro"
+  | "boardroom"
+  | "plain"
+  | "focus"
+  | "signature"
+  | "scholar"
+  | "strength"
+  | "whitespace"
+  | "bridge"
+  | "heritage"
+  | "versatile"
+  | "developer"
+  | "matrix"
+  | "balance";
 
 export type FontKey =
-  | "inter" | "lato" | "roboto" | "openSans" | "sourceSans" | "montserrat"
-  | "raleway" | "poppins" | "nunito" | "workSans" | "dmSans" | "manrope"
-  | "merriweather" | "lora" | "playfair" | "ebGaramond" | "crimson" | "libreBaskerville" | "jetbrainsMono";
+  | "inter"
+  | "lato"
+  | "roboto"
+  | "openSans"
+  | "sourceSans"
+  | "montserrat"
+  | "raleway"
+  | "poppins"
+  | "nunito"
+  | "workSans"
+  | "dmSans"
+  | "manrope"
+  | "merriweather"
+  | "lora"
+  | "playfair"
+  | "ebGaramond"
+  | "crimson"
+  | "libreBaskerville"
+  | "jetbrainsMono";
 
 export type SkillStyle = "dots" | "bars" | "blocks" | "rings" | "tags" | "text";
 export type PhotoShape = "circle" | "rounded" | "square";
 export type PageSize = "A4" | "Letter";
 export type Spacing = "compact" | "normal" | "relaxed";
 export type Layout = "single" | "left" | "right";
-export type Country = "uk" | "us" | "ca" | "au" | "ie" | "de" | "fr" | "nl" | "in" | "pk" | "ae" | "other";
+export type Country =
+  | "uk"
+  | "us"
+  | "ca"
+  | "au"
+  | "ie"
+  | "de"
+  | "fr"
+  | "nl"
+  | "in"
+  | "pk"
+  | "ae"
+  | "other";
 export type Level = "student" | "entry" | "mid" | "senior" | "executive";
 export type DateFormat = "mm/yyyy" | "mon yyyy" | "month yyyy" | "yyyy";
 export type Backdrop = "none" | "dots" | "grid" | "lines" | "corner" | "wave";
@@ -155,6 +274,8 @@ export interface Design {
 }
 
 export interface Cv {
+  kind?: "cv" | "letter";
+  tags?: string[];
   id: string;
   title: string;
   createdAt: number;
