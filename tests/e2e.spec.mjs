@@ -39,7 +39,7 @@ if (!BASE) {
 const TEMPLATES = ["pulse", "cascade", "monarch", "horizon", "mosaic", "nordic", "apex", "bloom", "sterling", "orbit",
   "aurora", "meridian", "summit", "atlas", "harbor", "vertex", "chronicle", "ledger", "linen", "prism",
   "zenith", "fusion", "catalyst", "campus", "terminal", "silicon", "elegance", "canvas", "keystone", "beacon",
-  "aurum", "ember", "glacier", "halo", "ivory", "meadow", "onyx", "quartz", "ribbon", "solstice", "atelier", "clarity", "metro", "boardroom", "plain", "focus", "signature", "scholar", "strength", "whitespace", "bridge", "heritage", "versatile", "developer", "matrix", "balance"];
+  "aurum", "ember", "glacier", "halo", "ivory", "meadow", "onyx", "quartz", "ribbon", "solstice", "atelier", "clarity", "metro", "boardroom", "plain", "focus", "signature", "scholar", "strength", "whitespace", "bridge", "heritage", "versatile", "developer", "matrix", "balance", "forma", "folio", "still", "aurelia", "serein", "opal", "vector", "signal", "arc"];
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "cv-e2e-"));
 const browser = await chromium.launch();
@@ -68,7 +68,7 @@ try {
   await page.goto(BASE + "/");
   check("landing page has a headline", await page.locator("h1").innerText(), (t) => t.includes("exceptional CV"));
   await page.waitForTimeout(800);
-  check("landing page shows the new Studio template collection", await page.getByText("NEW · STUDIO COLLECTION", { exact: true }).count(), (n) => n >= 5);
+  check("landing page shows The Edit template collection", await page.getByText("THE EDIT · FREE", { exact: true }).count(), (n) => n >= 5);
 
   /* landing call to action opens the new CV dialog */
   await page.getByTestId("hero-cta").click();

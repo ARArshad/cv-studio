@@ -98,9 +98,9 @@ try {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(base + "/templates");
   await page.getByTestId("gallery-categories").waitFor();
-  assert.equal(await page.locator("article").count(), 56);
+  assert.equal(await page.locator("article").count(), 65);
   await page
-    .getByRole("button", { name: "Studio collection · New", exact: true })
+    .getByRole("button", { name: "Studio collection", exact: true })
     .click();
   assert.equal(await page.locator("article").count(), 16);
   await page.getByLabel("Search templates", { exact: true }).fill("Basic");
@@ -122,7 +122,7 @@ try {
   );
   assert.deepEqual(errors, []);
   console.log(
-    "pass: 56 templates, 16-design collection, style search, modal preview, creation selection, phone layouts and no runtime errors",
+    "pass: 65 templates, 16-design collection, style search, modal preview, creation selection, phone layouts and no runtime errors",
   );
 } finally {
   await browser.close();

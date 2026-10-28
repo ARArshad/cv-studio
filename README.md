@@ -1,7 +1,7 @@
 # CV Studio
 
 Build a professional CV and matching cover letter by typing straight onto the page, with
-fifty-six templates in eleven categories (all free), document tags, and clean PDF/text exports.
+sixty-five templates in eleven categories (all free), document tags, and clean PDF/text exports.
 Free, private (CVs stay in the browser) and no sign up.
 
 ![The editor](docs/editor.png)
@@ -33,7 +33,7 @@ Free, private (CVs stay in the browser) and no sign up.
     zoom, rotate.
   - **Tool card**: **ATS checker** (paste a job advert to see which of its key words your CV
     already uses), **Import content** (upload an old CV as a PDF or paste its text and it is
-    sorted into sections), **Templates** (all fifty-six drawn with your own CV, filtered by
+    sorted into sections), **Templates** (all sixty-five drawn with your own CV, filtered by
     category), **Saved content** (keep your best bullets and entries and reuse them in any CV),
     **Optimizer** (a CV score plus line by line suggestions, also shown as markers in the margin
     of the page, with one click fixes for weak openings and personal details that do not belong),
@@ -47,7 +47,7 @@ Free, private (CVs stay in the browser) and no sign up.
 
 ## Templates
 
-Fifty-six templates, every one free, in eleven categories: Simple, Modern, Professional, Executive,
+Sixty-five templates, every one free, in eleven categories: Simple, Modern, Professional, Executive,
 Creative, Minimalist, Traditional, Skill-based, Hybrid, Student, and IT and tech. The twenty-five
 marked premium are the kind of design other builders charge for. All of them are original
 designs; none copies another builder's templates.
@@ -106,7 +106,7 @@ npm run test:e2e                  # starts the built app on port 3210 and drives
 
 `tests/e2e.spec.mjs` runs in a real browser: the landing page, creating CVs, typing on the page,
 undo and redo, Enter and Backspace in bullets, bold, the section and entry toolbars, adding,
-hiding and rearranging sections, themes, backgrounds, fonts, layouts and skill styles, all fifty-six
+hiding and rearranging sections, themes, backgrounds, fonts, layouts and skill styles, all sixty-five
 templates keeping the content, phrases, long CVs flowing onto more pages with nothing
 overflowing, the PDF having one A4 page per sheet, reload, rename, duplicate, delete, download
 and import (including files from the first version and old `.cvjson` files), blank CVs, and no
@@ -130,7 +130,7 @@ headless browser (Playwright, as the tests use) and returns the file. The curren
 | Path | Holds |
 |---|---|
 | `src/lib/types.ts` | the CV document: personal details, sections, design |
-| `src/lib/templates.ts` | the fifty-six templates and the colour themes |
+| `src/lib/templates.ts` | the sixty-five templates and the colour themes |
 | `src/lib/rich.ts` | the small rich text format (bold, italic, underline) |
 | `src/lib/sample.ts` | blank CV, section types and new section helpers |
 | `src/lib/personas.ts` | worked examples for six kinds of job |
@@ -204,7 +204,7 @@ and mobile/tablet overflow including editor settings panels. The broader
 
 ## Complete application workflow
 
-- `/cover-letters`: 56 cover letter styles using the same header, fonts, and palette as the CV templates.
+- `/cover-letters`: 65 cover letter styles using the same header, fonts, and palette as the CV templates.
 - `/examples`: six fictional professional examples that open creation with the correct role and template selected.
 - `/guides`: practical writing, tailoring, layout, cover letter, backup, and export guides.
 - `/dashboard?import=1`: import a text-based PDF or text file, or paste an existing CV; review the extracted content before creating a document.
@@ -222,7 +222,7 @@ Run the complete audit regression suite against a running app:
 BASE_URL=http://localhost:3000 npm run test:audit
 ```
 
-The audit covers cross-tab edits, tagged document views, matching cover letters across all 56 templates, paragraph editing, PDF/text/JSON exports, deletion recovery, responsive photo cropping, original photo persistence, direct PDF import, 320px–1440px layouts, and unreadable-storage recovery. See [the audit and reference comparison](docs/product-audit.md).
+The audit covers cross-tab edits, tagged document views, matching cover letters across all 65 templates, paragraph editing, PDF/text/JSON exports, deletion recovery, responsive photo cropping, original photo persistence, direct PDF import, 320px–1440px layouts, and unreadable-storage recovery. See [the audit and reference comparison](docs/product-audit.md).
 
 Run `npm run test:ai` for opt-in, review, apply/undo, numeric-claim, cancellation, failure, and cache-isolation checks. This suite mocks the worker; real browser model download and inference are checked separately. The model is [Apache 2.0 licensed](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct).
 
@@ -240,10 +240,33 @@ Its example edits do not create or modify documents in the user's library.
 
 The sixteen additional Studio designs are Atelier, Clarity, Metro, Boardroom, Plain, Focus,
 Signature, Scholar, Strength, Whitespace, Bridge, Heritage, Versatile, Developer, Matrix and
-Balance. All 56 designs are editable CVs and matching letters. Search supports the core style
+Balance. All 65 designs are editable CVs and matching letters. Search supports the core style
 terms: creative, basic, modern, executive, simple, functional, professional, college,
 skill-based, minimalist, hybrid, traditional, general, IT, tech and combined.
 
 `BASE_URL=http://localhost:3000 npm run test:marketing` checks the live preview, keyboard tabs,
 content preservation, colour changes, responsive widths, collection filtering, style search,
 template preview and creation selection.
+
+## Brand and The Edit
+
+The new CV Studio identity combines an open C and an ascending V in forest green and soft lime.
+The mark appears throughout the site and workspace, with a matching SVG browser icon and a
+180px home-screen icon. Reusable assets are in `public/brand/`.
+
+**The Edit** adds nine restrained designs, all free:
+
+| Simple | Elegant | Futuristic |
+| --- | --- | --- |
+| Forma | Aurelia | Vector |
+| Folio | Serein | Signal |
+| Still | Opal | Arc |
+
+These templates start without a photo; the editor can enable one. Each has a matching letter,
+uses the existing pagination/export engine and supports all normal editing controls. Find
+**The Edit** in the public gallery, new-document dialog or editor template panel. Search the
+collection for Simple, Elegant or Futuristic to see each family.
+
+Run `BASE_URL=http://localhost:3000 npm run test:edit` to check brand assets and metadata icons,
+all nine CV creation flows, photo defaults, page overflow, matching PDF page counts, unique
+document IDs, template switching, phone layouts and reload persistence.

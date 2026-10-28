@@ -160,7 +160,7 @@ try {
     .fill("no-such-template-999");
   await page.getByText("No templates found", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Reset filters" }).click();
-  assert.equal(await page.locator("article").count(), 56);
+  assert.equal(await page.locator("article").count(), 65);
   console.log(
     "pass: template search, preview, keyboard dismissal and filter reset",
   );

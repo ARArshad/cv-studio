@@ -5,7 +5,7 @@ import { TemplateGallery } from "@/components/site/TemplateGallery";
 
 export const metadata: Metadata = {
   title: "CV templates",
-  description: `${TEMPLATES.length} free CV templates, including sixteen new Studio designs. Explore professional, creative, student, executive, technical and minimalist layouts.`,
+  description: `${TEMPLATES.length} free CV templates, including nine new simple, elegant and futuristic designs. Explore professional, creative, student, executive, technical and minimalist layouts.`,
 };
 
 export default function TemplatesPage() {
@@ -18,11 +18,11 @@ export default function TemplatesPage() {
           One story. So many possibilities.
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-7 text-slate-500">
-          {TEMPLATES.length} distinctive layouts. Sixteen new Studio designs.
-          From a first internship to the next leadership role, find a style that
-          gives your experience the attention it deserves. Every template
-          includes a matching cover letter and is free to customise and
-          download.
+          {TEMPLATES.length} distinctive layouts. Meet The Edit: nine new
+          simple, elegant and futuristic designs. From a first internship to the
+          next leadership role, find a style that gives your experience the
+          attention it deserves. Every template includes a matching cover letter
+          and is free to customise and download.
         </p>
         <div className="mt-10">
           <TemplateGallery filterable />

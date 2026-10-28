@@ -106,7 +106,7 @@ export function designFor(template: TemplateId, base?: Partial<Design>): Design 
     pageSize: "A4",
     layout: null,
     sideWidth: null,
-    showPhoto: true,
+    showPhoto: t.showPhoto ?? true,
     photoShape: t.defaults.photoShape,
     showTitle: true,
     skillStyle: t.defaults.skillStyle,

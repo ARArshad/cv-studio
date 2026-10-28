@@ -18,7 +18,7 @@ import { optimize } from "@/lib/optimizer";
 import { parseCvText, pdfText } from "@/lib/importText";
 import { toText } from "@/lib/rich";
 import { useLibrary } from "@/lib/store";
-import { CATEGORIES, TEMPLATES, getTemplate, type Category } from "@/lib/templates";
+import { CATEGORIES, TEMPLATES, EDIT_TEMPLATE_IDS, getTemplate, type Category } from "@/lib/templates";
 import type { Cv, CvData, DetailIcon, Entry, Section, SectionType, TemplateId } from "@/lib/types";
 import { useEditor } from "./context";
 
@@ -297,7 +297,7 @@ export function PhrasesDrawer() {
 
 export function TemplatesDrawer() {
   const { cv, update } = useEditor();
-  const [filter, setFilter] = useState<"all" | "premium" | Category>("all");
+  const [filter, setFilter] = useState<"all" | "premium" | "edit" | Category>("all");
   const previews = useMemo(
     () => Object.fromEntries(TEMPLATES.map((t) => [t.id, {
       ...cv,
@@ -305,7 +305,7 @@ export function TemplatesDrawer() {
     } satisfies Cv])) as Record<TemplateId, Cv>,
     [cv],
   );
-  const list = TEMPLATES.filter((t) => filter === "all" ? true : filter === "premium" ? t.premium : t.categories.includes(filter));
+  const list = TEMPLATES.filter((t) => filter === "all" ? true : filter === "premium" ? t.premium : filter === "edit" ? EDIT_TEMPLATE_IDS.includes(t.id) : t.categories.includes(filter));
 
   const choose = (id: TemplateId) =>
     update((d) => {
@@ -318,8 +318,8 @@ export function TemplatesDrawer() {
   return (
     <div data-testid="templates-drawer">
       <div className="mb-4 flex flex-wrap gap-1.5">
-        {([["all", "All"], ["premium", "Premium"], ...CATEGORIES.map((c) => [c.id, c.name])] as [typeof filter, string][]).map(([k, l]) => (
-          <button key={k} type="button" onClick={() => setFilter(k)}
+        {([["all", "All"], ["edit", "The Edit"], ["premium", "Premium"], ...CATEGORIES.map((c) => [c.id, c.name])] as [typeof filter, string][]).map(([k, l]) => (
+          <button key={k} type="button" onClick={() => setFilter(k)} aria-pressed={filter === k}
             className={cx("rounded-full px-3 py-1 text-xs font-medium cursor-pointer", filter === k ? "bg-ink text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}>{l}</button>
         ))}
       </div>

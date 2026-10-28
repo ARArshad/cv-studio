@@ -185,7 +185,16 @@ export type TemplateId =
   | "versatile"
   | "developer"
   | "matrix"
-  | "balance";
+  | "balance"
+  | "forma"
+  | "folio"
+  | "still"
+  | "aurelia"
+  | "serein"
+  | "opal"
+  | "vector"
+  | "signal"
+  | "arc";
 
 export type FontKey =
   | "inter"

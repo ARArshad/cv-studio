@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { X } from "lucide-react";
+import { BrandMark } from "./BrandMark";
 
 export function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(" ");
@@ -32,22 +33,14 @@ export function Logo({
         className,
       )}
     >
-      <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-white shadow-sm">
-        <svg
-          viewBox="0 0 24 24"
-          className="h-[18px] w-[18px]"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2.2}
-          strokeLinecap="round"
-          aria-hidden
-        >
-          <path d="M7 4h7l4 4v12H7z" />
-          <path d="M14 4v4h4" />
-          <path d="M10 13h5M10 16.5h3.5" />
-        </svg>
+      <BrandMark className="h-8 w-8 shrink-0" />
+      <span
+        className="text-[18px] tracking-[-.055em]"
+        style={{ fontFamily: "var(--f-dm-sans), sans-serif" }}
+      >
+        <span className="font-semibold">CV</span>{" "}
+        <span className="font-normal">Studio</span>
       </span>
-      <span className="text-[17px]">CV Studio</span>
     </Link>
   );
 }

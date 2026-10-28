@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { ArrowUpRight, Check } from "lucide-react";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
 import { LetterHero } from "@/components/site/LetterHero";
+import { TEMPLATES } from "@/lib/templates";
 import { TemplateGallery } from "@/components/site/TemplateGallery";
 export const metadata: Metadata = {
   title: "Cover letter builder",
@@ -40,7 +41,7 @@ export default function CoverLettersPage() {
               </Link>
               <div className="mt-6 flex flex-wrap gap-5 text-xs text-brand-700">
                 {[
-                  "56 matching designs",
+                  `${TEMPLATES.length} matching designs`,
                   "Guided writing outline",
                   "Free PDF export",
                   "Private browser storage",

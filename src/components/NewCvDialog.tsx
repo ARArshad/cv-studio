@@ -11,6 +11,7 @@ import { makeCv } from "@/lib/sample";
 import { useHydrated, useLibrary } from "@/lib/store";
 import {
   CATEGORIES,
+  EDIT_TEMPLATE_IDS,
   TEMPLATES,
   getTemplate,
   type Category,
@@ -72,14 +73,16 @@ export function NewCvDialog({
   const [persona, setPersona] = useState<Persona | "auto">(
     initialPersona ?? "auto",
   );
-  const [cat, setCat] = useState<Category | "all" | "premium">("all");
+  const [cat, setCat] = useState<Category | "all" | "premium" | "edit">("all");
 
   const list = TEMPLATES.filter((t) =>
     cat === "all"
       ? true
       : cat === "premium"
         ? t.premium
-        : t.categories.includes(cat),
+        : cat === "edit"
+          ? EDIT_TEMPLATE_IDS.includes(t.id)
+          : t.categories.includes(cat),
   );
   const usedPersona =
     persona === "auto" ? getTemplate(template).persona : persona;
@@ -228,6 +231,7 @@ export function NewCvDialog({
         {(
           [
             ["all", "All"],
+            ["edit", "The Edit"],
             ["premium", "Premium"],
             ...CATEGORIES.map((c) => [c.id, c.name]),
           ] as [typeof cat, string][]

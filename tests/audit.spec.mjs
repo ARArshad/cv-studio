@@ -228,6 +228,15 @@ try {
     "developer",
     "matrix",
     "balance",
+    "forma",
+    "folio",
+    "still",
+    "aurelia",
+    "serein",
+    "opal",
+    "vector",
+    "signal",
+    "arc",
   ]) {
     await a.locator(`[data-testid=drawer] [data-template="${id}"]`).click();
     await a.waitForTimeout(60);
@@ -268,7 +277,7 @@ try {
   ]);
   const letterBackupBytes = await fs.readFile(await letterBackup.path());
   console.log(
-    "pass: matching cover letters preserve CV style, source achievements, editing, paragraph splitting, all 56 templates, reload, plain text and PDF output",
+    "pass: matching cover letters preserve CV style, source achievements, editing, paragraph splitting, all 65 templates, reload, plain text and PDF output",
   );
   await a.getByTestId("back").click();
   await a.getByRole("button", { name: "Cover letters", exact: true }).click();

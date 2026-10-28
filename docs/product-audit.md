@@ -12,7 +12,7 @@ Sources: [public builder overview](https://novoresume.com/), [cover-letter build
 
 | Workflow | CV Studio |
 | --- | --- |
-| Template selection | 56 searchable, filterable CV designs, previewed before creation and with the user's content inside the editor |
+| Template selection | 65 searchable, filterable CV designs, previewed before creation and with the user's content inside the editor |
 | Document editing | Inline editing, undo/redo, multiple columns, section controls, rearrangement, 22 section types, paper sizes, margins, fonts, themes, backgrounds, photo cropping, and date/rating styles |
 | Matching cover letters | Create from a CV with matching identity and design; write inline or in a guided panel; split paragraphs with Enter; review before export |
 | Writing assistance | Optional free on-device AI for rewriting, shortening, profiles, letter paragraphs and translation; role-specific phrases, an achievement optimizer, reusable content, an explainable checklist, and a letter outline using existing CV achievements |
@@ -129,3 +129,28 @@ checks. The audit suite exercised all 56 matching-letter designs. Library, optio
 and the new marketing suite passed with no browser runtime errors. Desktop and phone visual
 reviews covered the live product preview, template collection, writing example and matching
 CV/letter presentation.
+
+## Brand and premium design pass — 28 October 2026
+
+The existing collection included many photo-led and strongly decorated layouts. The Edit
+adds nine quieter designs in three groups: Forma/Folio/Still (simple), Aurelia/Serein/Opal
+(elegant), and Vector/Signal/Arc (futuristic). All are original, free to use, and default to
+no photo. Saved documents keep their existing photo preference when switching templates.
+The full library now contains 65 CV designs and matching letter styles.
+
+The CV Studio logo is a native vector monogram combining an open C with an ascending V.
+Forest `#173F35`, soft lime `#D1E5AA` and ivory `#F6F7EC` preserve the site's existing tone.
+The shared logo component updates marketing navigation, dashboard and footer usage. The
+browser and home-screen icons use the same artwork; reusable SVG assets are in `public/brand/`.
+Metadata descriptions and visible template counts reflect the expanded collection.
+
+Brand exports include self-contained dark/light wordmarks with outlined DM Sans lettering,
+so downloaded SVGs do not require a font installation or a network request. No raster model
+or paid asset service is required to display the logo.
+
+Validation: the production build, TypeScript compilation, lint and whitespace checks passed.
+The full CV suite rendered all 65 templates and passed; the audit suite exercised all 65
+matching-letter designs. Library, marketing, AI interface and The Edit suites also passed.
+The focused suite verifies all nine no-photo creation flows, page bounds, PDF page counts,
+independent document IDs, template switching, mobile fit, icon assets and reload persistence.
+Visual review covered the three design families, the new wordmark, and a rendered PDF.

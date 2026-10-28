@@ -11,6 +11,7 @@ import {
   CATEGORIES,
   TEMPLATES,
   STUDIO_TEMPLATE_IDS,
+  EDIT_TEMPLATE_IDS,
   type Category,
 } from "@/lib/templates";
 import type { TemplateId } from "@/lib/types";
@@ -39,9 +40,9 @@ export function TemplateGallery({
         : originals,
     [kind, originals],
   );
-  const [cat, setCat] = useState<Category | "all" | "premium" | "studio">(
-    "all",
-  );
+  const [cat, setCat] = useState<
+    Category | "all" | "premium" | "studio" | "edit"
+  >("all");
   const [query, setQuery] = useState("");
   const [preview, setPreview] = useState<TemplateId | null>(null);
   const selected = TEMPLATES.find((t) => t.id === preview);
@@ -51,9 +52,11 @@ export function TemplateGallery({
       (cat === "all" ||
         (cat === "premium"
           ? t.premium
-          : cat === "studio"
-            ? STUDIO_TEMPLATE_IDS.includes(t.id)
-            : t.categories.includes(cat))) &&
+          : cat === "edit"
+            ? EDIT_TEMPLATE_IDS.includes(t.id)
+            : cat === "studio"
+              ? STUDIO_TEMPLATE_IDS.includes(t.id)
+              : t.categories.includes(cat))) &&
       `${t.name} ${t.blurb} ${t.tags.join(" ")}`
         .toLowerCase()
         .includes(query.trim().toLowerCase()),
@@ -84,7 +87,8 @@ export function TemplateGallery({
             {(
               [
                 ["all", "All templates"],
-                ["studio", "Studio collection · New"],
+                ["edit", "The Edit · New"],
+                ["studio", "Studio collection"],
                 ["premium", "Premium"],
                 ...CATEGORIES.map((c) => [c.id, c.name]),
               ] as [typeof cat, string][]
@@ -119,9 +123,11 @@ export function TemplateGallery({
                 <CvThumb cv={samples[t.id]} />
               </button>
               <span className="absolute left-3 top-3 rounded-md bg-white/95 px-2 py-1 text-[9px] font-semibold tracking-wider text-brand-700">
-                {STUDIO_TEMPLATE_IDS.includes(t.id)
-                  ? "NEW · STUDIO COLLECTION"
-                  : "FREE TEMPLATE"}
+                {EDIT_TEMPLATE_IDS.includes(t.id)
+                  ? "THE EDIT · FREE"
+                  : STUDIO_TEMPLATE_IDS.includes(t.id)
+                    ? "STUDIO COLLECTION"
+                    : "FREE TEMPLATE"}
               </span>
               <button
                 onClick={() => setPreview(t.id)}

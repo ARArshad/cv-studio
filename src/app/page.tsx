@@ -102,9 +102,9 @@ export default function Home() {
               className="inline-flex items-center gap-2 rounded-full border border-[#bfd4cd] bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-[#356354]"
             >
               <span className="hidden rounded-full bg-[#e3f1d6] px-2 py-0.5 text-[9px] uppercase tracking-wider min-[360px]:inline">
-                New collection
+                The Edit
               </span>
-              16 fresh ways to tell your story <ArrowRight size={12} />
+              Quiet design. Lasting impression. <ArrowRight size={12} />
             </Link>
             <h1 className="marketing-title mx-auto mt-7 max-w-[1050px] text-[clamp(43px,6vw,86px)]">
               Your experience deserves
@@ -208,9 +208,9 @@ export default function Home() {
                 </span>
               </h2>
               <p className="mt-5 max-w-xl text-sm leading-7 text-slate-500">
-                Discover the new Studio collection. Sixteen considered layouts
-                for creative careers, leadership, technical expertise and
-                everything in between.
+                Discover The Edit: nine new simple, elegant and futuristic
+                layouts. Quiet typography, considered spacing and details that
+                let your experience take the lead.
               </p>
             </div>
             <Link
@@ -221,14 +221,7 @@ export default function Home() {
             </Link>
           </div>
           <TemplateGallery
-            ids={[
-              "signature",
-              "atelier",
-              "clarity",
-              "metro",
-              "boardroom",
-              "scholar",
-            ]}
+            ids={["forma", "folio", "aurelia", "serein", "vector", "signal"]}
           />
         </section>
         <section
